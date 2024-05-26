@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Daily diary data"
 output: html_notebook
 ---
 
@@ -19,13 +19,16 @@ if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}            
 if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      # interplots
 if (!require("htmlwidgets")) {install.packages("htmlwidgets"); require("htmlwidgets")}    # plotting
 if (!require("kableExtra")) {install.packages("kableExtra"); require("kableExtra")}       # tables
+if (!require("lme4")) {install.packages("lme4"); require("lme4")}                         # ICC
 if (!require("moments")) {install.packages("moments"); require("moments")}                # descriptives for data
 if (!require("naniar")) {install.packages("naniar"); require("naniar")}                   # descriptives for data
 if (!require("plotly")) {install.packages("plotly"); require("plotly")}                   # plot data
 if (!require("psych")) {install.packages("psych"); require("psych")}                      # descriptives for data
 if (!require("readxl")) {install.packages("readxl"); require("readxl")}                   # import data
+if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}                   # ICC table
 if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}                      # data wrangling
 if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}          # manipulation, plot, etc.
+
 ```
 
 ```{r Data}
@@ -56,6 +59,12 @@ write.csv(EMA_dat_1_sorted, "Burst_three_EMA_data_sorted.csv")
 ```
 
 ```{r Adherence and missingness}
+# Change PIDs to just numeric 
+EMA_dat_1_sorted <- EMA_dat_1_sorted %>% mutate(PID = as.numeric(sub("^P", "", PID)))
+
+# Convery characters to numeric
+EMA_dat_1_sorted[, 8:37] <- lapply(EMA_dat_1_sorted[, 8:37], as.numeric)
+
 # Look at participant adherence
 (days_per_participant <- EMA_dat_1_sorted %>%
   group_by(PID) %>%
@@ -75,6 +84,30 @@ EMA_dat_1_sorted_processed <- EMA_dat_1_sorted %>%
 (missing_summary_2 <- EMA_dat_1_sorted_processed %>%
   group_by(PID) %>%
   summarise(across(.cols = 8:38, ~sum(is.na(.)) / 21, .names = "prop_{.col}")))
+```
+
+```{r Variability}
+# Looking at between / within person variance for some example items with intraclass correlation coefficients (1)
+# lower ICC values = more within-person (state) variance; higher ICC values = more between-person (trait) variance
+# another similar metric - root mean square of successive differences (RMSSD) - measures variability from one observation to the next - is in the next chunk (in 'idescriptives').
+
+uncon_coping_1 <- lmer(coping_1 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_coping_1, p.val = "kr") # ICC = .40
+
+uncon_coping_2 <- lmer(coping_2 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_coping_2, p.val = "kr") # ICC = .60
+
+uncon_coping_3 <- lmer(coping_3 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_coping_3, p.val = "kr") # ICC = .30
+
+uncon_coping_4 <- lmer(coping_4 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_coping_4,  p.val = "kr") # ICC = .61
+
+uncon_coping_5 <- lmer(coping_5 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_coping_5) # ICC = .19
+
+uncon_qol <- lmer(qol ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
+tab_model(uncon_qol) # ICC = .11
 ```
 
 ```{r Long form data}
