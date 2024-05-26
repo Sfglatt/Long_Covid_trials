@@ -210,3 +210,67 @@ htmlwidgets::saveWidget(ggplotly(plot_all_ind_means_inter),
                         file = file.path("Long_Covid_trials",                                                     
                                          "Interactive_means_all_vars.html"))
 ```
+
+```{r Daily series per participant and variable}
+# This chunk is plotting each participant (IDs 15, 16, 19, and 21) daily diary and arranging them 2x2 for each variable. (e.g., a PDF with daily "hopelessness" for each participant.) 
+
+# Folder to save figures 
+# dir.create("Daily_diary_figures")
+output_dir <- "Daily_diary_figures"
+
+numeric_cols_1 <- c("qol", "hopefulness", "health", "restedness", 
+                    "falling_asleep", "staying_asleep", "waking_early", 
+                    "isolation", "busy",
+                    "anxiety", "depression", 
+                    "lc_sx_1", "lc_sx_2", "lc_sx_3", "lc_sx_4", "lc_sx_5", "lc_sx_6", "lc_sx_7", "lc_sx_8",
+                    "coping_1", "coping_2", "coping_3", "coping_4", "coping_5", "functioning")
+
+numeric_cols_2 <- c("pre_energy", "energy", "post_energy")
+
+participants_of_interest <- c(15, 16, 19, 21)
+
+palette <- c("#FF6699", "#FF9966", "#CC99CC")
+
+variable_colors <- setNames(palette, unique(numeric_cols_2))
+
+for (variable_of_interest in numeric_cols_2) {
+  variable_plots <- list()
+  
+  for (pid in participants_of_interest) {
+    participant_data <- long_df %>%
+      filter(PID == pid, item == variable_of_interest) %>%
+      mutate(DayNumber = as.integer(factor(StartDate, levels = unique(StartDate))))
+    
+    min_value <- floor(min(na.omit(participant_data$answer_id)))
+    max_value <- ceiling(max(na.omit(participant_data$answer_id)))
+    
+    if (!is.finite(min_value)) min_value <- 0
+    
+    breaks <- seq(0, 10, by = 1)
+    limits <- c(0, 10)
+    
+    plot <- ggplot(participant_data, aes(x = DayNumber, y = answer_id, group = item, color = item)) +
+      geom_line(alpha = 0.7, size = 1.5) +
+      geom_vline(xintercept = c(7, 14, 21), linetype = "dashed", color = "grey") +  
+      scale_color_manual(values = variable_colors) +  
+      theme_minimal() +
+      labs(
+        x = "Days",
+        y = "Endorsement",
+        title = paste("Series for Participant", pid, "-", variable_of_interest)
+      ) +
+      scale_y_continuous(breaks = breaks, limits = limits)
+    
+    variable_plots[[as.character(pid)]] <- plot
+  }
+  
+  arranged_plot <- cowplot::plot_grid(plotlist = variable_plots, ncol = 2)
+  
+  arranged_plot_filename <- file.path(output_dir, paste("Series_", 
+                                                        variable_of_interest, 
+                                                        "_arranged.pdf",
+                                                        sep = ""))
+  
+  ggsave(arranged_plot_filename, arranged_plot, width = 12, height = 10, units = "in")
+}
+```
