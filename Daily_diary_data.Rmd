@@ -42,7 +42,7 @@ EMA_dat_1 <- EMA_dat_1 %>%
   rename(PID = RecipientLastName,
          StartDate = RecordedDate)
 
-# Rearrange the dataset by participant and time so rows are sorted first by participant and then by daily measures
+# Rearrange the dataset by participant and time 
 EMA_dat_1_sorted <- EMA_dat_1 %>%
   dplyr::arrange(PID, StartDate)
 
@@ -80,19 +80,19 @@ EMA_dat_1_sorted_processed <- EMA_dat_1_sorted %>%
 ```{r Long form data}
 # sorting the data into long format: 
 
-# Convert non-PID and non-StartDate columns to characters
+# Change column forms
 EMA_dat_1_sorted <- EMA_dat_1_sorted %>% mutate(across(-c(PID, StartDate), as.character))
 
-# Reshape the entire dataframe to long format
+# Reshape dataframe to long format
 long_df <- EMA_dat_1_sorted %>% pivot_longer(cols = -c(PID, StartDate), 
                names_to = "item", 
                values_to = "answer_id")
 
-# Change PIDs to just numeric (e.g., instead P15, just 15). this will make it easier to plot 
+# Change PIDs to just numeric 
 long_df <- long_df %>% mutate(PID = as.numeric(sub("^P", "", PID)))
 
-# Convert answer_id to numeric form.
-long_df <- long_df %>%  mutate(answer_id = as.numeric(answer_id))
+# Change answer_id to numeric 
+long_df <- long_df %>% mutate(answer_id = as.numeric(answer_id))
 
 # save the data in long format
 write.csv(long_df, "Burst_three_EMA_data_long_form.csv")
