@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r Github}
+# usethis::create_from_github("https://github.com/Sfglatt/Long_Covid_trials.git",
+#                            destdir = "C:Github/Long_Covid_trials")
+```
+
+```{r Packages}
+# Update the packages needed
+if (!require("cowplot")) {install.packages("cowplot"); require("cowplot")}                # drawing on plot
+if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}          # descriptives
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      # data wrangling
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      # interplots
+if (!require("htmlwidgets")) {install.packages("htmlwidgets"); require("htmlwidgets")}    # plotting
+if (!require("kableExtra")) {install.packages("kableExtra"); require("kableExtra")}       # tables
+if (!require("moments")) {install.packages("moments"); require("moments")}                # descriptives for data
+if (!require("naniar")) {install.packages("naniar"); require("naniar")}                   # descriptives for data
+if (!require("plotly")) {install.packages("plotly"); require("plotly")}                   # plot data
+if (!require("psych")) {install.packages("psych"); require("psych")}                      # descriptives for data
+if (!require("readxl")) {install.packages("readxl"); require("readxl")}                   # import data
+if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}                      # data wrangling
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}          # manipulation, plot, etc.
+```
+
+```{r Data}
+# Import data 
+EMA_dat <- read.csv("Long_COVID_EMA_Data_Final_Burst_De-Identified.csv") 
+
+# Look at the data
+head(EMA_dat)
+glimpse(EMA_dat)
+EMA_dat_1 <- EMA_dat[-c(1:2), ] # remove first two rows 
+
+# Rename the ID and start date columns to be consistent with the other datasets
+EMA_dat_1 <- EMA_dat_1 %>%
+  rename(PID = RecipientLastName,
+         StartDate = RecordedDate)
+
+# Rearrange the dataset by participant and time so rows are sorted first by participant and then by daily measures
+EMA_dat_1_sorted <- EMA_dat_1 %>%
+  dplyr::arrange(PID, StartDate)
+
+View(EMA_dat_1_sorted)
+
+# the first three rows don't not have an ID (*preview*), so exclude those
+EMA_dat_1_sorted <- EMA_dat_1_sorted[-c(1:3), ]
+
+# Save the chronological data
+write.csv(EMA_dat_1_sorted, "Burst_three_EMA_data_sorted.csv")
+```
+
+```{r Long form data}
+# sorting the data into long format: 
+
+# Convert non-PID and non-StartDate columns to characters
+EMA_dat_1_sorted <- EMA_dat_1_sorted %>% mutate(across(-c(PID, StartDate), as.character))
+
+# Reshape the entire dataframe to long format
+long_df <- EMA_dat_1_sorted %>% pivot_longer(cols = -c(PID, StartDate), 
+               names_to = "item", 
+               values_to = "answer_id")
+
+# Change PIDs to just numeric (e.g., instead P15, just 15). this will make it easier to plot 
+long_df <- long_df %>% mutate(PID = as.numeric(sub("^P", "", PID)))
+
+# Convert answer_id to numeric form.
+long_df <- long_df %>%  mutate(answer_id = as.numeric(answer_id))
+
+# save the data in long format
+write.csv(long_df, "Burst_three_EMA_data_long_form.csv")
+
+# Summarize the reshaped data
+
+# variables to include in the next part of the code:
+ema_mh_vars <- c("pre_energy", "energy", "post_energy", "qol", "hopelessness", "health", "restedness", "health",
+                 "falling_asleep", "staying_asleep", "waking_early", "isolation", "busy", "anxiety", 
+                 "depression", "lc_sx_1", "lc_sx_2", "lc_sx_3", "lc_sx_4", "lc_sx_5", "lc_sx_6", "lc_sx_7",
+                 "lc_sx_8", "coping_1", "coping_2", "coping_3", "coping_4", "coping_5","functioning")
+
+# names(long_df)  # make sure that the data is in correct format
+# str(long_df)    # make sure that the data is in correct format
+
+# calculate individual mean, sd, skew, etc. 
+(df_desc <- long_df %>%
+  dplyr::filter(item %in% ema_mh_vars) %>%  
+  dplyr::group_by(PID, item) %>%
+  dplyr::summarize(
+    imean = mean(answer_id, na.rm = TRUE),
+    imed = median(answer_id, na.rm = TRUE),
+    isd = sd(answer_id, na.rm = TRUE),
+    iskew = moments::skewness(answer_id, na.rm = TRUE),
+    irmssd = psych::rmssd(answer_id, na.rm = TRUE)
+  ))
+
+# view individual mean, sd, skew, etc. 
+t1 <- df_desc %>%
+  dplyr::filter(item %in% ema_mh_vars) %>%
+  ungroup() %>%
+  dplyr::group_by(item) %>%
+  dplyr::select(-PID) %>%
+  dplyr::filter(!is.nan(iskew)) %>%
+  dplyr::summarize(across(
+    everything(),
+    list(mean = mean, sd = sd),
+    .names = "{.col}_{.fn}"
+  )) %>%
+  dplyr::group_by(item) %>%
+  dplyr::summarize(across(
+    everything(),
+    ~ round(., digits = 2)
+  )) %>%
+  mutate(
+    iMean = paste0(format(imean_mean, drop0trailing = FALSE), " (", format(imean_sd, drop0trailing = FALSE), ")"),
+    iMedian = paste0(format(imed_mean, drop0trailing = FALSE), " (", format(imed_sd, drop0trailing = FALSE), ")"),
+    iSD = paste0(format(isd_mean, drop0trailing = FALSE), " (", format(isd_sd, drop0trailing = FALSE), ")"),
+    iSkew = paste0(format(iskew_mean, drop0trailing = FALSE), " (", format(iskew_sd, drop0trailing = FALSE), ")"),
+    iRMSSD = paste0(format(irmssd_mean, drop0trailing = FALSE), " (", format(irmssd_sd, drop0trailing = FALSE), ")")
+  ) %>%
+  dplyr::select(item, iMean, iMedian, iSD, iSkew, iRMSSD) %>%
+  ungroup()
+
+knitr::kable(t1, format = "markdown", align = "c")
+
+# Save individuals' descriptives
+write.csv(df_desc, "Burst_three_Individual_item_descriptives.csv" )
+```
+
