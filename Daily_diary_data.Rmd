@@ -5,10 +5,13 @@ output: html_notebook
 
 ```{r Github}
 # usethis::create_from_github("https://github.com/Sfglatt/Long_Covid_trials.git",
-#                            destdir = "C:Github/Long_Covid_trials")
+#                            destdir = "Github/Long_Covid_trials")
 ```
 
 ```{r Packages}
+# clear work space
+rm(list=ls())
+
 # Update the packages needed
 if (!require("cowplot")) {install.packages("cowplot"); require("cowplot")}                # drawing on plot
 if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}          # descriptives
@@ -27,7 +30,7 @@ if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 
 ```{r Data}
 # Import data 
-EMA_dat <- read.csv("Long_COVID_EMA_Data_Final_Burst_De-Identified.csv") 
+EMA_dat <- read.csv("C:/Users/sofel/OneDrive/Documents/Labs/Bronx VA foundation/EMA_long_covid/Long_COVID_EMA_Data_Final_Burst_De-Identified.csv") 
 
 # Look at the data
 head(EMA_dat)
@@ -50,6 +53,28 @@ EMA_dat_1_sorted <- EMA_dat_1_sorted[-c(1:3), ]
 
 # Save the chronological data
 write.csv(EMA_dat_1_sorted, "Burst_three_EMA_data_sorted.csv")
+```
+
+```{r Adherence and missingness}
+# Look at participant adherence
+(days_per_participant <- EMA_dat_1_sorted %>%
+  group_by(PID) %>%
+  summarise(days_count = n_distinct(StartDate))) # 4 participants have 20/21 days, 1 has 5.
+
+# Look at missingness
+# Change blank cells to NA
+EMA_dat_1_sorted_processed <- EMA_dat_1_sorted %>%
+  mutate(across(.cols = 8:38, ~ifelse(. == "", NA, .)))
+
+# Summarize missing values (proportions) for each variable per participant from filled out diaries
+(missing_summary_1 <- EMA_dat_1_sorted_processed %>%
+  group_by(PID) %>%
+  summarise(across(.cols = 8:38, ~mean(is.na(.)), .names = "prop_{.col}")))
+
+# Summarize missing values for each variable per participant out of 21 days 
+(missing_summary_2 <- EMA_dat_1_sorted_processed %>%
+  group_by(PID) %>%
+  summarise(across(.cols = 8:38, ~sum(is.na(.)) / 21, .names = "prop_{.col}")))
 ```
 
 ```{r Long form data}
@@ -128,3 +153,60 @@ knitr::kable(t1, format = "markdown", align = "c")
 write.csv(df_desc, "Burst_three_Individual_item_descriptives.csv" )
 ```
 
+```{r Participant average and SD visualization}
+# Plot the mean for each individuals' variable endorsement (e.g., participant 15's average hopefulness score).
+
+# Pre-definition so that this will plot consistently across different participants 
+table(EMA_dat_1$PID)
+
+numeric_cols <- c("pre_energy", "energy", "post_energy", "qol", "hopefulness", "health", "restedness", 
+                  "falling_asleep", "staying_asleep", "waking_early", "isolation", "busy", "anxiety", 
+                  "depression", "lc_sx_1", "lc_sx_2", "lc_sx_3", "lc_sx_4", "lc_sx_5", "lc_sx_6", 
+                  "lc_sx_7", "lc_sx_8", "coping_1", "coping_2", "coping_3", "coping_4", "coping_5",
+                  "functioning") # this will be used to define what to plot, and separately, for factors/levels. 
+
+palette_28 <- c("#00CC33", "#006600", "#009E73", "#00FFCC", "#00FFFF", "#33CCCC", "#56B4E9",
+              
+                "#006666", "#3333FF", "#003399", "#FF33CC", "#FF6699", "#FF0066", "#FF6666",
+              
+                "#996699", "#993366", "#990099", "#9933CC", "#663399", "#330066", "#CC3333",
+              
+                "#E69F00", "#FFCC00", "#FFCC99", "#FFCCFF", "#FF6600", "#FF9933", "#CC9966")
+
+
+#### Individual participant Variable means - GROUP plot ###
+
+plot_all_ind_means <- long_df %>%
+  group_by(PID, item) %>%
+  summarise(imean = mean(answer_id, na.rm = TRUE),
+            imedian = median(answer_id, na.rm = TRUE),
+            isd = sd(answer_id, na.rm = TRUE)) %>%
+  ungroup() %>%
+  filter(item %in% numeric_cols) %>%
+  mutate(item = as.factor(item)) %>%
+  # mutate(item = fct_reorder(item, imean, .fun = "median", .na_rm = TRUE)) %>%
+   # It often is meaningful to plot in order of the median, which the above comment does. 
+   # I did not do that and opted to choose  one order so that the same order can be followed for other plots. 
+  mutate(item = factor(item, levels = numeric_cols)) %>%
+  ggplot(aes(x = as.numeric(item), y = imean, shape = as.factor(PID))) +
+  geom_point(aes(fill = item, color = item, 
+                 text = paste("iSD: ", round(isd, 2), "<br>iMedian: ", round(imedian, 2))), 
+             position = position_jitter(width = 0.2), size = 2) +
+  scale_fill_manual(values = palette_28) +
+  scale_color_manual(values = palette_28) +
+  scale_shape_manual(values = c(4, 15, 16, 17, 18)) +  
+  scale_y_continuous(breaks = seq(0, 10, 1)) +  
+  scale_x_continuous(breaks = seq_along(unique(long_df$item)), labels = seq_along(unique(long_df$item))) +  
+  guides(
+    shape = guide_legend(title = "Participants", 
+                         override.aes = list(shape = c(4, 15, 16, 17, 18), 
+                                             labels = c("P15", "P16", "P19", "P20", "P21"))))
+                                             # labels = c("P4", "P15", "P16", "P17", "P18")
+                                             
+
+(plot_all_ind_means_inter <- ggplotly(plot_all_ind_means))
+
+htmlwidgets::saveWidget(ggplotly(plot_all_ind_means_inter),
+                        file = file.path("Long_Covid_trials",                                                     
+                                         "Interactive_means_all_vars.html"))
+```
