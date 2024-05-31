@@ -3,7 +3,723 @@ title: "Trial data"
 output: html_notebook
 ---
 
-```{r}
-plot(cars)
+```{r Packages}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("readxl")) {install.packages("readxl"); require("readxl")}
+if (!require("stringr")) {install.packages("stringr"); require("stringr")}
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 ```
 
+# Cohort 1 - just baseline is separate
+```{r Cohort 1 baseline}
+c1_baseline <- read.csv("Cohort_1_baseline_numeric.csv")
+
+# Deal with wonky demo format
+collapse_columns <- function(data, prefix) {
+  result <- apply(data[, grep(paste0("^", prefix, "___"), names(data))], 1, function(row) {
+    choices <- which(row == 1)
+    if (length(choices) == 0) {
+      return(NA)  # if no choices were filled 
+    } else {
+      return(choices[1])  
+    }
+  })
+  return(result)
+}
+
+prefixes <- c("race", "ethnicity", "birth_sex", "gender_identity", "religious_preference", 
+              "employment", "education", "marital_status", "mothers_education", 
+              "fathers_education", "military_branch", "service_era", "rank")
+
+for (prefix in prefixes) {
+  c1_baseline[[prefix]] <- collapse_columns(c1_baseline, prefix)
+}
+
+# Append _0 to these columns to indicate baseline
+for (col in names(c1_baseline)) {
+    names(c1_baseline)[names(c1_baseline) == col] <- paste0(col, "_0")
+    }
+
+# rename ID column so it matches the other datasets - to be used for merging
+c1_baseline <- c1_baseline %>%
+  rename(ID = record_id_0)
+
+relevant_columns <- colnames(c1_baseline)
+transform_relevant_column_names <- function(column_names) {
+  for (i in seq_along(column_names)) {
+    col_name <- column_names[i]
+    if (grepl("^aim_|^fim_|^iam_|^qol_|^mocs_|^qol_", col_name)) {
+      column_names[i] <- toupper(col_name)
+    }
+    else if (grepl("^whodas_", col_name)) {
+      column_names[i] <- gsub("^whodas", "WHODAS", col_name)
+    }
+    else if (grepl("^phq9_", col_name)) {
+      column_names[i] <- gsub("^phq9", "PHQ-9", col_name)
+    }
+    else if (grepl("^sc_gad", col_name)) {
+      column_names[i] <- gsub("^sc_gad", "GAD-7_", col_name)
+    }
+    else if (grepl("^sbqr", col_name)) {
+      column_names[i] <- gsub("^sbqr_q", "SBQ-R_Q", col_name)
+    }
+    else if (grepl("^fscq_", col_name)) {
+      col_name <- gsub("^fscq_sim", "FSCQ_Sim", col_name)
+      col_name <- gsub("^fscq_viv", "FSCQ_Viv", col_name)
+      col_name <- gsub("^fscq_pos", "FSCQ_Pos", col_name)
+      col_name <- gsub("^fscq_", "FSCQ_", col_name)
+      column_names[i] <- col_name
+    }
+  }
+  return(column_names)
+}
+relevant_columns <- transform_relevant_column_names(relevant_columns)
+colnames(c1_baseline) <- relevant_columns
+
+colnames(c1_baseline) <- gsub(" ", "_", colnames(c1_baseline))
+c1_baseline <- c1_baseline %>%
+  rename_all(~ str_replace_all(., "-", "."))
+colnames(c1_baseline)
+c1_baseline <- c1_baseline %>%
+  rename(PHQ.9_how_diff_0 = PHQ.9_how_difficult_0, 
+         GAD.7_sc_diff_0 = sc_difficult_0, 
+         months_of_active_dut_0 = months_of_active_duty_0,
+         highest_level_of_ed_0 = education_0, 
+         c19yrs_social_now_0 = c19yrs_social_role_now_0, 
+         c19yrs_social_pre_0 = c19yrs_social_role_pre_0,
+         c19yrs_dailyli_now_0 = c19yrs_daily_liv_now_0, 
+         c19yrs_dailyli_pre_0 = c19yrs_daily_liv_pre_0, 
+         c19yrs_perscar_now_0 = c19yrs_pers_care_now_0, 
+         c19yrs_perscar_pre_0 = c19yrs_pers_care_pre_0, 
+         c19yrs_bre_now_wal_0 = c19yrs_breath_now_walk_0, 
+         c19yrs_bre_pre_wal_0 = c19yrs_breath_pre_walk_0, 
+         c19yrs_bre_now_dre_0 = c19yrs_breath_now_dress_0,
+         c19yrs_bre_pre_dre_0= c19yrs_breath_pre_dress_0, 
+         c19yrs_bre_now_ly_0 = c19yrs_breath_now_lying_0, 
+         c19yrs_bre_pre_ly_0 = c19yrs_breath_pre_lying_0, 
+         c19yrs_bre_now_res_0 = c19yrs_breath_now_rest_0, 
+         c19yrs_bre_pre_res_0 = c19yrs_breath_pre_rest_0, 
+         c19yrs_family_pers_0 = c19yrs_fam_persp_0, 
+         WHODAS_H1_0 = WHODAS_h1_0,
+         WHODAS_H2_0 = WHODAS_h2_0,
+         WHODAS_H3_0 = WHODAS_h3_0)
+```
+
+```{r Cohort 2 baseline}
+c2_baseline <- readxl::read_xlsx("Cohort_2_baseline_numeric.xlsx")
+
+colnames(c2_baseline)
+
+colnames(c2_baseline) <- gsub(" ", "_", colnames(c2_baseline))
+c2_baseline <- c2_baseline %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+identical(c2_baseline$ID...1, c2_baseline$ID...216)
+
+c2_baseline <- c2_baseline %>%
+  rename(ID = ID...1, ID_end = ID...216)
+
+for (col in names(c2_baseline)) {
+  # exclude ID for merging
+  if (col != "ID") {
+    # add _0 to columns that don't have it
+    if (!grepl("_0$", col)) {
+      new_col <- paste0(col, "_0")
+      names(c2_baseline)[names(c2_baseline) == col] <- new_col
+    }
+    # if the columns have _1, replace it with _0 as it is baseline info
+    if (grepl("_1$", col)) {
+      new_col <- gsub("_1$", "_0", col)
+      names(c2_baseline)[names(c2_baseline) == col] <- new_col
+    }
+  }
+}
+
+c2_baseline <- c2_baseline %>%
+  rename(GAD.7_sc_diff_0 = GAD._7_sc_diff_0, 
+         c19yrs_health_now_0 = c19yrs_health_now_0...96_0, # Qualtrics had them with the same label, verified the actual Qs
+         c19yrs_health_pre_0 = c19yrs_health_now_0...97_0)
+```
+
+```{r Merge cohort 1 and 2 baseline}
+# Look at variable discrepancies
+setdiff(colnames(c1_baseline_2), colnames(c2_baseline))
+setdiff(colnames(c2_baseline), colnames(c1_baseline_2))
+
+# Remove cohort 1 wonky demo information:
+colnames(c1_baseline)
+c1_baseline_2 <- c1_baseline[, -c(2:21, # Interview Qs
+                                24:89, # oddly split demo questions that were merged above
+                                95:105, # oddly split demo questions that were merged above
+                                110, 111, 113,
+                                127:129, 228, # c19 technical details
+                                268:284, 
+                                292:296, 298:299, # Odd GAD-7 split item choices and technical details
+                                300:302, 312, 314:315, # PHQ technical details
+                                326:330, # FSCQ totals - redone below with other datasets
+                                344, # Technical MOCS detail
+                                361:362, # Technical QOL details
+                                367, 380 # technical SBQR / AIM details
+                                )] # Random WHODAS item totals that were already calculated - redone correctly below
+
+
+c1_2_baseline_merged <- merge(
+  c1_baseline_2,
+  c2_baseline,
+  by = "ID",
+  all = TRUE)
+
+head(c1_2_baseline_merged)
+
+c1_2_baseline_merged <- c1_2_baseline_merged[-1, ]
+
+common_cols <- intersect(colnames(c1_baseline)[-1], colnames(c2_baseline)[-1])
+
+for (col in common_cols) {
+  c1_2_baseline_merged[[col]] <- ifelse(!is.na(c1_2_baseline_merged[[paste0(col, ".x")]]),
+                                        c1_2_baseline_merged[[paste0(col, ".x")]],
+                                        c1_2_baseline_merged[[paste0(col, ".y")]])
+  # Remove original columns
+  c1_2_baseline_merged <- c1_2_baseline_merged[, -c(which(colnames(c1_2_baseline_merged) == paste0(col, ".x")),
+                                                     which(colnames(c1_2_baseline_merged) == paste0(col, ".y")))]
+}
+colnames(c1_2_baseline_merged)
+View(c1_2_baseline_merged)
+```
+
+# Cohort 1 and 2 - only the follow-ups, not baseline
+```{r Cohort 2 dataset}
+c1_2_mid_treatment <- read.csv("Cohort_1_and_2_follow_up_1.csv")
+c1_2_post_treatment <- read.csv("Cohort_1_and_2_follow_up_2.csv")
+nrow(c1_2_post_treatment)
+
+colnames(c1_2_mid_treatment)
+
+colnames(c1_2_mid_treatment) <- gsub(" ", "_", colnames(c1_2_mid_treatment))
+colnames(c1_2_post_treatment) <- gsub(" ", "_", colnames(c1_2_post_treatment))
+
+# identical(c1_2_baseline$ID...1, c1_2_baseline$ID...216)
+# c1_2_baseline <- c1_2_baseline %>%
+#  rename(ID = ID...1, ID_end = ID...216)
+
+c1_2_mid_treatment <- c1_2_mid_treatment %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+c1_2_mid_treatment <- c1_2_mid_treatment %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+
+# The variables aren't correctly labeled across datasets. This will correctly append the right tags
+
+for (col in names(c1_2_mid_treatment)) {
+  if (col != "ID" && !grepl("_1$", col)) {
+    names(c1_2_mid_treatment)[names(c1_2_mid_treatment) == col] <- paste0(col, "_1")
+  }
+}
+
+for (col in names(c1_2_post_treatment)) {
+  if (col != "ID" && !grepl("_2$", col)) {
+    names(c1_2_post_treatment)[names(c1_2_post_treatment) == col] <- paste0(col, "_2")
+  }
+}
+```
+
+
+```{r Cohort 2 dataset merge pre mid post}
+c1_2_mid_post_merged <- merge(c1_2_mid_treatment, c1_2_post_treatment, by = "ID", all.x = TRUE)
+colnames(c1_2_mid_post_merged)
+c1_2_mid_post_merged <- c1_2_mid_post_merged[-c(1:2), ]
+
+c1_2_baseline_mid_post_merged <- merge(c1_2_baseline_merged, c1_2_mid_post_merged, by = "ID", all.s = TRUE)
+head(c1_2_baseline_mid_post_merged)
+colnames(c1_2_baseline_mid_post_merged)
+```
+
+# Cohort 3
+```{r Cohort 3 one dataset}
+c3_baseline <- readxl::read_xlsx("Cohort_3_Baseline_Data.xlsx")
+c3_mid_treatment <- readxl::read_xlsx("Cohort_3_follow_up_1.xlsx")
+c3_post_treatment <- read.csv("Cohort_3_Follow_up_2.csv")
+
+colnames(c3_baseline) <- gsub(" ", "_", colnames(c3_baseline))
+colnames(c3_mid_treatment) <- gsub(" ", "_", colnames(c3_mid_treatment))
+colnames(c3_post_treatment) <- gsub(" ", "_", colnames(c3_post_treatment))
+
+colnames(c3_baseline)
+
+c3_baseline <- c3_baseline %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+c3_mid_treatment <- c3_mid_treatment %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+c3_mid_treatment <- c3_mid_treatment %>%
+  rename_all(~ str_replace_all(., "-", "."))
+
+# For some reason the Covid-19 "How good or bad is your health overall in the last 7 days (now)?" and "How good or bad was your health overall Pre-COVID?" have the same label in Qualtrics - "c19yrs_health_now_0".  2 columns can't have the same name, so R appended random identifiers to distinguish them. Fixing them below: 
+c3_baseline <- c3_baseline %>%
+  rename(c19yrs_health_now_0 = c19yrs_health_now_0...111, 
+         c19yrs_health_pre_0 = c19yrs_health_now_0...112)
+
+# The variables aren't correctly labeled across datasets. This will correctly append the right tags
+for (col in names(c3_baseline)) {
+  if (col != "ID" && !grepl("_0$", col)) {
+    # Excluding the ID column so that it can be used for merging
+    names(c3_baseline)[names(c3_baseline) == col] <- paste0(col, "_0")
+  }
+}
+
+for (col in names(c3_mid_treatment)) {
+  if (col != "ID" && !grepl("_1$", col)) {
+    names(c3_mid_treatment)[names(c3_mid_treatment) == col] <- paste0(col, "_1")
+  }
+}
+
+for (col in names(c3_post_treatment)) {
+  if (col != "ID" && !grepl("_2$", col)) {
+    names(c3_post_treatment)[names(c3_post_treatment) == col] <- paste0(col, "_2")
+  }
+}
+
+
+# Merge the three time points into one dataset
+c3_baseline_mid_merged <- merge(c3_baseline, c3_mid_treatment, by = "ID", all.x = TRUE)
+colnames(c3_baseline_mid_merged)
+
+c3_baseline_mid_post_merged <- merge(c3_baseline_mid_merged, c3_post_treatment, by = "ID", all.x = TRUE)
+head(c3_baseline_mid_post_merged)
+
+c3_baseline_mid_post_merged <- c3_baseline_mid_post_merged[-1, ]
+head(c3_baseline_mid_post_merged)
+
+# write.csv(c3_baseline_mid_post_merged, "Cohort_3_all_data_5.29.csv")
+```
+
+```{r Combine merged cohorts 2 and 3}
+# Look at variable discrepancies
+setdiff(colnames(c1_2_baseline_mid_post_merged), colnames(c3_baseline_mid_post_merged))
+setdiff(colnames(c3_baseline_mid_post_merged), colnames(c1_2_baseline_mid_post_merged))
+
+# Merge datasets
+merged_data <- merge(
+  c1_2_baseline_mid_post_merged,
+  c3_baseline_mid_post_merged,
+  by = "ID",
+  all = TRUE)
+
+colnames(merged_data)
+
+common_cols <- intersect(colnames(c1_2_baseline_mid_post_merged)[-1], colnames(c3_baseline_mid_post_merged)[-1])
+
+for (col in common_cols) {
+  merged_data[[paste0(col, ".m")]] <- ifelse(!is.na(merged_data[[paste0(col, ".x")]]),
+                                             merged_data[[paste0(col, ".x")]],
+                                             merged_data[[paste0(col, ".y")]])
+  # if you want to remove original 
+  merged_data <- merged_data[, -c(which(colnames(merged_data) == paste0(col, ".x")),
+                                 which(colnames(merged_data) == paste0(col, ".y")))]
+}
+# All of the ".m" columns are merged with cohorts 2 and 3. The variables without the ".m" suffix were only administered to one of the cohorts (e.g., QPR items were only given to cohort 3).
+
+# write.csv(merged_data, "Cohorts_1_2_3_all_data_5.30.csv")
+```
+
+```{r Scoring measures}
+merged_data <- merged_data %>% mutate_at(vars(ends_with(".m")), as.numeric)
+
+#### AIM / IAM / FIM ####
+
+# Check missingness
+
+I_A_F_items <- c(
+  "AIM_1_1.m", "AIM_2_1.m", "AIM_3_1.m", "AIM_4_1.m",
+  "IAM_1_1.m", "IAM_2_1.m", "IAM_3_1.m", "IAM_4_1.m",
+  "FIM_1_1.m", "FIM_2_1.m", "FIM_3_1.m", "FIM_4_1.m",
+  "AIM_1_2.m", "AIM_2_2.m", "AIM_3_2.m", "AIM_4_2.m",
+  "IAM_1_2.m", "IAM_2_2.m", "IAM_3_2.m", "IAM_4_2.m",
+  "FIM_1_2.m", "FIM_2_2.m", "FIM_3_2.m", "FIM_4_2.m",
+  "AIM_1a_2.m", "AIM_2a_2.m", "AIM_3a_2.m", "AIM_4a_2.m",
+  "IAM_1a_2.m", "IAM_2a_2.m", "IAM_3a_2.m", "IAM_4a_2.m",
+  "FIM_1a_2.m", "FIM_2a_2.m", "FIM_3a_2.m", "FIM_4a_2.m")
+
+(sapply(I_A_F_items, function(col) sum(is.na(merged_data[[col]]))))
+
+# Average the AIM, IAM, and FIM items for total scores
+merged_data$AIM_mod_1_AVERAGE_1 <- rowMeans(merged_data[, c("AIM_1_1.m", "AIM_2_1.m", "AIM_3_1.m", "AIM_4_1.m")], 
+                                            na.rm = FALSE)
+merged_data$IAM_mod_1_AVERAGE_1 <- rowMeans(merged_data[, c("IAM_1_1.m", "IAM_2_1.m", "IAM_3_1.m", "IAM_4_1.m")], 
+                                            na.rm = FALSE)
+merged_data$FIM_mod_1_AVERAGE_1 <- rowMeans(merged_data[, c("FIM_1_1.m", "FIM_2_1.m", "FIM_3_1.m", "FIM_4_1.m")], 
+                                            na.rm = FALSE)
+
+merged_data$AIM_mod_2_AVERAGE_2 <- rowMeans(merged_data[, c("AIM_1_2.m", "AIM_2_2.m", "AIM_3_2.m", "AIM_4_2.m")], 
+                                            na.rm = FALSE)
+merged_data$IAM_mod_2_AVERAGE_2 <- rowMeans(merged_data[, c("IAM_1_2.m", "IAM_2_2.m", "IAM_3_2.m", "IAM_4_2.m")], 
+                                            na.rm = FALSE)
+merged_data$FIM_mod_2_AVERAGE_2 <- rowMeans(merged_data[, c("FIM_1_2.m", "FIM_2_2.m", "FIM_3_2.m", "FIM_4_2.m")], 
+                                            na.rm = FALSE)
+
+merged_data$AIM_overall_AVERAGE_2 <- rowMeans(merged_data[, c("AIM_1a_2.m", "AIM_2a_2.m", "AIM_3a_2.m", "AIM_4a_2.m")], 
+                                              na.rm = FALSE)
+merged_data$IAM_overall_AVERAGE_2 <- rowMeans(merged_data[, c("IAM_1a_2.m", "IAM_2a_2.m", "IAM_3a_2.m", "IAM_4a_2.m")], 
+                                              na.rm = FALSE)
+merged_data$FIM_overall_AVERAGE_2 <- rowMeans(merged_data[, c("FIM_1a_2.m", "FIM_2a_2.m", "FIM_3a_2.m", "FIM_4a_2.m")], 
+                                              na.rm = FALSE)
+
+#### FSCQ ####
+
+# FSCQ total scores
+merged_data <- merged_data %>%
+  mutate(
+    FSCQ_total_AVERAGE_0 = rowMeans(select(., c("FSCQ_Sim_1_0.m", "FSCQ_Sim_2_0.m", "FSCQ_Sim_3_0.m", "FSCQ_Sim_4_0.m",
+                                                "FSCQ_Viv_1_0.m", "FSCQ_Viv_2_0.m", "FSCQ_Viv_3_0.m", 
+                                                "FSCQ_Pos_1_0.m", "FSCQ_Pos_2_0.m", "FSCQ_Pos_3_0.m")), 
+                                    na.rm = FALSE), 
+    FSCQ_total_AVERAGE_1 = rowMeans(select(., c("FSCQ_Sim_1_1.m", "FSCQ_Sim_2_1.m", "FSCQ_Sim_3_1.m", "FSCQ_Sim_4_1.m",
+                                                "FSCQ_Viv_1_1.m", "FSCQ_Viv_2_1.m", "FSCQ_Viv_3_1.m", 
+                                                "FSCQ_Pos_1_1.m", "FSCQ_Pos_2_1.m", "FSCQ_Pos_3_1.m")), 
+                                    na.rm = FALSE),
+    FSCQ_total_AVERAGE_2 = rowMeans(select(., c("FSCQ_Sim_1_2.m", "FSCQ_Sim_2_2.m", "FSCQ_Sim_3_2.m", "FSCQ_Sim_4_2.m",
+                                                 "FSCQ_Viv_1_2.m", "FSCQ_Viv_2_2.m", "FSCQ_Viv_3_2.m", 
+                                                 "FSCQ_Pos_1_2.m", "FSCQ_Pos_2_2.m", "FSCQ_Pos_3_2.m")), 
+                                     na.rm = FALSE)
+  )  
+
+# FSCQ subscale scores
+merged_data <- merged_data %>%
+  mutate(
+    FSCQ_sim_AVERAGE_0 = rowMeans(select(., c("FSCQ_Sim_1_0.m", "FSCQ_Sim_2_0.m", "FSCQ_Sim_3_0.m", "FSCQ_Sim_4_0.m")),
+                                  na.rm = FALSE),
+    FSCQ_sim_AVERAGE_1 = rowMeans(select(., c("FSCQ_Sim_1_1.m", "FSCQ_Sim_2_1.m", "FSCQ_Sim_3_1.m", "FSCQ_Sim_4_1.m")),
+                                  na.rm = FALSE),    
+    FSCQ_sim_AVERAGE_2 = rowMeans(select(., c("FSCQ_Sim_1_2.m", "FSCQ_Sim_2_2.m", "FSCQ_Sim_3_2.m", "FSCQ_Sim_4_2.m")),
+                                  na.rm = FALSE),   
+    FSCQ_Viv_AVERAGE_0 = rowMeans(select(., c("FSCQ_Viv_1_0.m", "FSCQ_Viv_2_0.m", "FSCQ_Viv_3_0.m")),
+                                  na.rm = FALSE),
+    FSCQ_Viv_AVERAGE_1 = rowMeans(select(., c("FSCQ_Viv_1_1.m", "FSCQ_Viv_2_1.m", "FSCQ_Viv_3_1.m")),
+                                  na.rm = FALSE),    
+    FSCQ_Viv_AVERAGE_2 = rowMeans(select(., c("FSCQ_Viv_1_2.m", "FSCQ_Viv_2_2.m", "FSCQ_Viv_3_2.m")),
+                                  na.rm = FALSE), 
+    FSCQ_Pos_AVERAGE_0 = rowMeans(select(., c("FSCQ_Pos_1_0.m", "FSCQ_Pos_2_0.m", "FSCQ_Pos_3_0.m")),
+                                  na.rm = FALSE),
+    FSCQ_Pos_AVERAGE_1 = rowMeans(select(., c("FSCQ_Pos_1_1.m", "FSCQ_Pos_2_1.m", "FSCQ_Pos_3_1.m")),
+                                  na.rm = FALSE),    
+    FSCQ_Pos_AVERAGE_2 = rowMeans(select(., c("FSCQ_Pos_1_2.m", "FSCQ_Pos_2_2.m", "FSCQ_Pos_3_2.m")),
+                                  na.rm = FALSE)
+    )
+
+# Check missing:
+summary(merged_data$FSCQ_total_AVERAGE_1)
+merged_data[is.na(merged_data$FSCQ_total_AVERAGE_1), ]
+
+#### QOL ####
+
+# Check missingness
+QOL_columns <- grep("^QOL_Q\\d+_[0-2]\\.m$", colnames(merged_data), value = TRUE)
+(sapply(QOL_columns, function(col) sum(is.na(merged_data[[col]]))))
+
+# There is item level missing data: Participant mean imputation
+# baseline
+merged_data_imputed <- merged_data
+merged_data_imputed[, grep("^QOL_Q\\d+_0\\.m$", 
+                     colnames(merged_data_imputed))] <- t(apply(merged_data_imputed[, grep("^QOL_Q\\d+_0\\.m$",
+                                                                                           colnames(merged_data_imputed))],
+                                                          1,
+                                                          function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
+merged_data_imputed[is.na(merged_data_imputed$QOL_Q11_0.m), ]
+table(merged_data_imputed$ID, merged_data_imputed$QOL_Q11_0.m)
+
+# mid treatment
+merged_data_imputed[, grep("^QOL_Q\\d+_1\\.m$", 
+                     colnames(merged_data_imputed))] <- t(apply(merged_data_imputed[, grep("^QOL_Q\\d+_1\\.m$",
+                                                                                           colnames(merged_data_imputed))],
+                                                                1,
+                                                          function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
+summary(merged_data_imputed$QOL_Q11_1.m)
+summary(merged_data$QOL_Q11_1.m)
+
+# post treatment
+merged_data_imputed[, grep("^QOL_Q\\d+_2\\.m$", 
+                     colnames(merged_data_imputed))] <- t(apply(merged_data_imputed[, grep("^QOL_Q\\d+_2\\.m$",
+                                                                                           colnames(merged_data_imputed))],
+                                                                1,
+                                                          function(x) ifelse(is.na(x), 
+                                                                             mean(x, na.rm = TRUE), x)))
+summary(merged_data_imputed$QOL_Q11_2.m)
+summary(merged_data$QOL_Q11_2.m)
+
+
+merged_data_imputed <- merged_data_imputed %>%
+  mutate(QOL_SUM_0 = rowSums(select(., c("QOL_Q1_0.m", "QOL_Q2_0.m", "QOL_Q3_0.m", "QOL_Q4_0.m",
+                                         "QOL_Q5_0.m", "QOL_Q6_0.m", "QOL_Q7_0.m", "QOL_Q8_0.m",
+                                         "QOL_Q9_0.m", "QOL_Q10_0.m", "QOL_Q11_0.m", "QOL_Q12_0.m",   
+                                         "QOL_Q13_0.m", "QOL_Q14_0.m", "QOL_Q15_0.m", "QOL_Q16_0.m",)), 
+                             na.rm = FALSE),
+         QOL_SUM_1 = rowSums(select(., c("QOL_Q1_1.m", "QOL_Q2_1.m", "QOL_Q3_1.m", "QOL_Q4_1.m",
+                                         "QOL_Q5_1.m", "QOL_Q6_1.m", "QOL_Q7_1.m", "QOL_Q8_1.m",
+                                         "QOL_Q9_1.m", "QOL_Q10_1.m", "QOL_Q11_1.m", "QOL_Q12_1.m",   
+                                         "QOL_Q13_1.m", "QOL_Q14_1.m", "QOL_Q15_1.m", "QOL_Q16_1.m",)), 
+                             na.rm = FALSE),
+         QOL_SUM_2 = rowSums(select(., c("QOL_Q1_2.m", "QOL_Q2_2.m", "QOL_Q3_2.m", "QOL_Q4_2.m",
+                                         "QOL_Q5_2.m", "QOL_Q6_2.m", "QOL_Q7_2.m", "QOL_Q8_2.m",
+                                         "QOL_Q9_2.m", "QOL_Q10_2.m", "QOL_Q11_2.m", "QOL_Q12_2.m",   
+                                         "QOL_Q13_2.m", "QOL_Q14_2.m", "QOL_Q15_2.m", "QOL_Q16_2.m",)), 
+                             na.rm = FALSE))
+
+# Check missing:
+summary(merged_data_imputed$QOL_SUM_0) 
+summary(merged_data_imputed$QOL_SUM_1) 
+summary(merged_data_imputed$QOL_SUM_2) 
+
+#### PHQ-9 ####
+
+# Check missingness
+Dep_items <- c("PHQ.9_1", "PHQ.9_2", "PHQ.9_3", "PHQ.9_4", "PHQ.9_5", "PHQ.9_6", "PHQ.9_7", "PHQ.9_8", "PHQ.9_9")
+
+Dep_items <- c(
+  paste0(Dep_items, "_0.m"),
+  paste0(Dep_items, "_1.m"),
+  paste0(Dep_items, "_2.m")
+)
+
+(sapply(Dep_items, function(col) sum(is.na(merged_data[[col]]))))
+
+merged_data <- merged_data %>%
+  mutate(PHQ_SUM_0 = rowSums(select(., c("PHQ.9_1_0.m", "PHQ.9_2_0.m", "PHQ.9_3_0.m", "PHQ.9_4_0.m",
+                                         "PHQ.9_5_0.m", "PHQ.9_6_0.m", "PHQ.9_7_0.m", "PHQ.9_8_0.m",
+                                         "PHQ.9_9_0.m")), 
+                             na.rm = FALSE),
+         PHQ_SUM_1 = rowSums(select(., c("PHQ.9_1_1.m", "PHQ.9_2_1.m", "PHQ.9_3_1.m", "PHQ.9_4_1.m",
+                                         "PHQ.9_5_1.m", "PHQ.9_6_1.m", "PHQ.9_7_1.m", "PHQ.9_8_1.m",
+                                         "PHQ.9_9_1.m")), 
+                             na.rm = FALSE),
+         PHQ_SUM_2 = rowSums(select(., c("PHQ.9_1_2.m", "PHQ.9_2_2.m", "PHQ.9_3_2.m", "PHQ.9_4_2.m",
+                                         "PHQ.9_5_2.m", "PHQ.9_6_2.m", "PHQ.9_7_2.m", "PHQ.9_8_2.m",
+                                         "PHQ.9_9_2.m")), 
+                             na.rm = FALSE))
+
+#### GAD-7 ####
+
+# Check missingness
+Anx_items <- c("GAD.7_1", "GAD.7_2", "GAD.7_3", "GAD.7_4", "GAD.7_5", "GAD.7_6", "GAD.7_7")
+
+Anx_items <- c(
+  paste0(Anx_items, "_0.m"),
+  paste0(Anx_items, "_1.m"),
+  paste0(Anx_items, "_2.m"))
+
+(sapply(Anx_items, function(col) sum(is.na(merged_data[[col]]))))
+
+# one participant is missing item 7 so we need to impute. Use 'merged_dataset_imputed'
+merged_data_imputed[, grep("^GAD.7_\\d+_0\\.m$", 
+                     colnames(merged_data_imputed))] <- t(apply(merged_data_imputed[, grep("^GAD.7_\\d+_0\\.m$",
+                                                                                           colnames(merged_data_imputed))],
+                                                          1,
+                                                          function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
+summary(merged_data$GAD.7_7_0.m)
+summary(merged_data_imputed$GAD.7_7_0.m) # good
+
+merged_data_imputed <- merged_data_imputed %>%
+  mutate(GAD_SUM_0 = rowSums(select(., c("GAD.7_1_0.m", "GAD.7_2_0.m", "GAD.7_3_0.m", "GAD.7_4_0.m",
+                                         "GAD.7_5_0.m", "GAD.7_6_0.m", "GAD.7_7_0.m")), 
+                             na.rm = FALSE),
+         GAD_SUM_1 = rowSums(select(., c("GAD.7_1_1.m", "GAD.7_2_1.m", "GAD.7_3_1.m", "GAD.7_4_1.m",
+                                         "GAD.7_5_1.m", "GAD.7_6_1.m", "GAD.7_7_1.m")), 
+                             na.rm = FALSE),
+         GAD_SUM_2 = rowSums(select(., c("GAD.7_1_2.m", "GAD.7_2_2.m", "GAD.7_3_2.m", "GAD.7_4_2.m",
+                                         "GAD.7_5_2.m", "GAD.7_6_2.m", "GAD.7_7_2.m")), 
+                             na.rm = FALSE))
+
+#### MOCS ####
+
+# Check missingness
+MOCS_items <- c("MOCS_Q1", "MOCS_Q2", "MOCS_Q3", "MOCS_Q4", "MOCS_Q5", 
+                "MOCS_Q6", "MOCS_Q7", "MOCS_Q8", "MOCS_Q9", "MOCS_Q10", 
+                "MOCS_Q11", "MOCS_Q12", "MOCS_Q12")
+
+MOCS_items <- c(
+  paste0(MOCS_items, "_0.m"),
+  paste0(MOCS_items, "_1.m"),
+  paste0(MOCS_items, "_2.m"))
+
+(sapply(MOCS_items, function(col) sum(is.na(merged_data[[col]]))))
+
+merged_data <- merged_data %>%
+  mutate(MOCS_SUM_0 = rowSums(select(., c("MOCS_Q1_0.m", "MOCS_Q2_0.m", "MOCS_Q3_0.m", "MOCS_Q4_0.m",
+                                          "MOCS_Q5_0.m", "MOCS_Q6_0.m", "MOCS_Q7_0.m", "MOCS_Q8_0.m",
+                                          "MOCS_Q9_0.m", "MOCS_Q10_0.m", "MOCS_Q11_0.m", "MOCS_Q12_0.m",
+                                          "MOCS_Q13_0.m")), 
+                             na.rm = FALSE),
+         MOCS_SUM_1 = rowSums(select(., c("MOCS_Q1_1.m", "MOCS_Q2_1.m", "MOCS_Q3_1.m", "MOCS_Q4_1.m",
+                                          "MOCS_Q5_1.m", "MOCS_Q6_1.m", "MOCS_Q7_1.m", "MOCS_Q8_1.m",
+                                          "MOCS_Q9_1.m", "MOCS_Q10_1.m", "MOCS_Q11_1.m", "MOCS_Q12_1.m",
+                                          "MOCS_Q13_1.m")), 
+                             na.rm = FALSE),
+         MOCS_SUM_2 = rowSums(select(., c("MOCS_Q1_2.m", "MOCS_Q2_2.m", "MOCS_Q3_2.m", "MOCS_Q4_2.m",
+                                          "MOCS_Q5_2.m", "MOCS_Q6_2.m", "MOCS_Q7_2.m", "MOCS_Q8_2.m",
+                                          "MOCS_Q9_2.m", "MOCS_Q10_2.m", "MOCS_Q11_2.m", "MOCS_Q12_2.m",
+                                          "MOCS_Q13_2.m")), 
+                             na.rm = FALSE))
+
+#### WHODAS ####
+colnames(merged_data)
+
+whodas_items <- c(
+  "WHODAS_d1_1_0.m", "WHODAS_d1_2_0.m", "WHODAS_d1_3_0.m", "WHODAS_d1_4_0.m", "WHODAS_d1_5_0.m", "WHODAS_d1_6_0.m", 
+  "WHODAS_d2_1_0.m", "WHODAS_d2_2_0.m", "WHODAS_d2_3_0.m", "WHODAS_d2_4_0.m", "WHODAS_d2_5_0.m", "WHODAS_d3_1_0.m", 
+  "WHODAS_d3_2_0.m", "WHODAS_d3_3_0.m", "WHODAS_d3_4_0.m",
+  "WHODAS_d4_1_0.m", "WHODAS_d4_2_0.m", "WHODAS_d4_3_0.m", "WHODAS_d4_4_0.m", "WHODAS_d4_5_0.m",
+  "WHODAS_d5_1_0.m", "WHODAS_d5_2_0.m", "WHODAS_d5_3_0.m", "WHODAS_d5_4_0.m","WHODAS_d5_5_0.m", "WHODAS_d5_6_0.m", "WHODAS_d5_7_0.m", "WHODAS_d5_8_0.m",
+  "WHODAS_d6_1_0.m", "WHODAS_d6_2_0.m", "WHODAS_d6_3_0.m", "WHODAS_d6_4_0.m", "WHODAS_d6_5_0.m", "WHODAS_d6_6_0.m", "WHODAS_d6_7_0.m", "WHODAS_d6_8_0.m",
+  "WHODAS_d1_1_1.m", "WHODAS_d1_2_1.m", "WHODAS_d1_3_1.m", "WHODAS_d1_4_1.m", "WHODAS_d1_5_1.m", "WHODAS_d1_6_1.m", 
+  "WHODAS_d2_1_1.m", "WHODAS_d2_2_1.m", "WHODAS_d2_3_1.m", "WHODAS_d2_4_1.m", "WHODAS_d2_5_1.m", "WHODAS_d3_1_1.m", 
+  "WHODAS_d3_2_1.m", "WHODAS_d3_3_1.m", "WHODAS_d3_4_1.m",
+  "WHODAS_d4_1_1.m", "WHODAS_d4_2_1.m", "WHODAS_d4_3_1.m", "WHODAS_d4_4_1.m", "WHODAS_d4_5_1.m",
+  "WHODAS_d5_1_1.m", "WHODAS_d5_2_1.m", "WHODAS_d5_3_1.m", "WHODAS_d5_4_1.m","WHODAS_d5_5_1.m", "WHODAS_d5_6_1.m", "WHODAS_d5_7_1.m", "WHODAS_d5_8_1.m",
+  "WHODAS_d6_1_1.m", "WHODAS_d6_2_1.m", "WHODAS_d6_3_1.m", "WHODAS_d6_4_1.m", "WHODAS_d6_5_1.m", "WHODAS_d6_6_1.m", "WHODAS_d6_7_1.m", "WHODAS_d6_8_1.m",
+  "WHODAS_d1_1_2.m", "WHODAS_d1_2_2.m", "WHODAS_d1_3_2.m", "WHODAS_d1_4_2.m", "WHODAS_d1_5_2.m", "WHODAS_d1_6_2.m", 
+  "WHODAS_d2_1_2.m", "WHODAS_d2_2_2.m", "WHODAS_d2_3_2.m", "WHODAS_d2_4_2.m", "WHODAS_d2_5_2.m", "WHODAS_d3_1_2.m", 
+  "WHODAS_d3_2_2.m", "WHODAS_d3_3_2.m", "WHODAS_d3_4_2.m",
+  "WHODAS_d4_1_2.m", "WHODAS_d4_2_2.m", "WHODAS_d4_3_2.m", "WHODAS_d4_4_2.m", "WHODAS_d4_5_2.m",
+  "WHODAS_d5_1_2.m", "WHODAS_d5_2_2.m", "WHODAS_d5_3_2.m", "WHODAS_d5_4_2.m","WHODAS_d5_5_2.m", "WHODAS_d5_6_2.m", "WHODAS_d5_7_2.m", "WHODAS_d5_8_2.m",
+  "WHODAS_d6_1_2.m", "WHODAS_d6_2_2.m", "WHODAS_d6_3_2.m", "WHODAS_d6_4_2.m", "WHODAS_d6_5_2.m", "WHODAS_d6_6_2.m", "WHODAS_d6_7_2.m", "WHODAS_d6_8_2.m")
+
+(sapply(whodas_items, function(col) sum(is.na(merged_data[[col]]))))
+```
+
+```{r Paired comparison}
+#### QOL ####
+# use imputed dataset
+
+jmv::ttestPS(
+    data = merged_data_imputed,
+    pairs = list(
+        list(
+            i1="QOL_SUM_0",
+            i2="QOL_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+# individual improvement
+filtered_data <- merged_data_imputed %>%
+  filter(!is.na(QOL_SUM_0) & !is.na(QOL_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(QOL_pre_post_improvement = QOL_SUM_2 - QOL_SUM_0)
+
+(QOL_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "QOL",
+    Improved = sum(QOL_pre_post_improvement > 0, na.rm = TRUE),
+    No_Change = sum(QOL_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(QOL_pre_post_improvement < 0, na.rm = TRUE)
+  ))
+
+
+#### FSCQ ####
+
+jmv::ttestPS(
+    data = merged_data,
+    pairs = list(
+        list(
+            i1="FSCQ_Pos_AVERAGE_0",
+            i2="FSCQ_Pos_AVERAGE_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+#### PHQ ####
+
+jmv::ttestPS(
+    data = merged_data,
+    pairs = list(
+        list(
+            i1="PHQ_SUM_0",
+            i2="PHQ_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+# individual improvement
+filtered_data <- merged_data %>%
+  filter(!is.na(PHQ_SUM_0) & !is.na(PHQ_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(PHQ_pre_post_improvement = PHQ_SUM_2 - PHQ_SUM_0)
+
+(PHQ_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "PHQ",
+    Improved = sum(PHQ_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(PHQ_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(PHQ_pre_post_improvement > 0, na.rm = TRUE)
+  ))
+
+#### GAD-7 ####
+# make sure to use the imputed dataset
+
+jmv::ttestPS(
+    data = merged_data_imputed,
+    pairs = list(
+        list(
+            i1="GAD_SUM_0",
+            i2="GAD_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+filtered_data <- merged_data_imputed %>%
+  filter(!is.na(GAD_SUM_0) & !is.na(GAD_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(GAD_pre_post_improvement = GAD_SUM_2 - GAD_SUM_0)
+
+(GAD_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "GAD",
+    Improved = sum(GAD_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(GAD_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(GAD_pre_post_improvement > 0, na.rm = TRUE)
+  ))
+
+#### MOCS ####
+
+jmv::ttestPS(
+    data = merged_data,
+    pairs = list(
+        list(
+            i1="MOCS_SUM_0",
+            i2="MOCS_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+
+bind_rows(PHQ_ind_summary, GAD_ind_summary, QOL_ind_summary)
+```
