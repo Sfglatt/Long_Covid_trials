@@ -281,7 +281,6 @@ for (col in names(c3_post_treatment)) {
   }
 }
 
-
 # Merge the three time points into one dataset
 c3_baseline_mid_merged <- merge(c3_baseline, c3_mid_treatment, by = "ID", all.x = TRUE)
 colnames(c3_baseline_mid_merged)
@@ -291,6 +290,14 @@ head(c3_baseline_mid_post_merged)
 
 c3_baseline_mid_post_merged <- c3_baseline_mid_post_merged[-1, ]
 head(c3_baseline_mid_post_merged)
+
+# correct QPR
+colnames(c3_baseline_mid_post_merged) <- str_replace_all(colnames(c3_baseline_mid_post_merged), "QPR_(\\d+)", "QPR_Q\\1")
+colnames(c3_baseline_mid_post_merged)
+
+c3_baseline_mid_post_merged <- c3_baseline_mid_post_merged %>%
+  rename(QPR_Q2_2 = QPR_Q2, 
+         QPR_Q1_1 = QPR_Q1)
 
 # write.csv(c3_baseline_mid_post_merged, "Cohort_3_all_data_5.29.csv")
 ```
@@ -320,6 +327,17 @@ for (col in common_cols) {
                                  which(colnames(merged_data) == paste0(col, ".y")))]
 }
 # All of the ".m" columns are merged with cohorts 2 and 3. The variables without the ".m" suffix were only administered to one of the cohorts (e.g., QPR items were only given to cohort 3).
+
+# Add cohort identifier
+merged_data <- merged_data %>%
+  mutate(Cohort = case_when(
+    ID %in% paste0("P", sprintf("%02d", 1:8)) ~ "1",
+    ID %in% paste0("P", sprintf("%02d", 9:14)) ~ "2",
+    ID %in% paste0("P", sprintf("%02d", 15:22)) ~ "3",
+    TRUE ~ NA_character_
+  ))
+
+table(merged_data$ID, merged_data$Cohort)
 
 # write.csv(merged_data, "Cohorts_1_2_3_all_data_5.30.csv")
 ```
@@ -530,6 +548,39 @@ merged_data_imputed <- merged_data_imputed %>%
                                          "GAD.7_5_2.m", "GAD.7_6_2.m", "GAD.7_7_2.m")), 
                              na.rm = FALSE))
 
+#### QPR ####
+# only cohort 3 recieved this
+
+# Check missingness
+QPR_items <- c("QPR_Q1", "QPR_Q2", "QPR_Q3", "QPR_Q4", "QPR_Q5", 
+                "QPR_Q6", "QPR_Q7", "QPR_Q8", "QPR_Q9", "QPR_Q10", 
+                "QPR_Q11", "QPR_Q12", "QPR_Q12",  "QPR_Q13", "QPR_Q14", "QPR_Q15")
+
+QPR_items <- c(
+  paste0(QPR_items, "_0"),
+  paste0(QPR_items, "_1"),
+  paste0(QPR_items, "_2"))
+
+(sapply(QPR_items, function(col) sum(is.na(merged_data[[col]]))))
+merged_data <- merged_data %>% mutate(across(matches("^QPR_Q"), as.numeric))
+
+merged_data <- merged_data %>%
+  mutate(QPR_SUM_0 = rowSums(select(., c("QPR_Q1_0", "QPR_Q2_0", "QPR_Q3_0", "QPR_Q4_0",
+                                         "QPR_Q5_0", "QPR_Q6_0", "QPR_Q7_0", "QPR_Q8_0",
+                                         "QPR_Q9_0", "QPR_Q10_0", "QPR_Q11_0", "QPR_Q12_0",
+                                         "QPR_Q13_0")), 
+                             na.rm = FALSE),
+         QPR_SUM_1 = rowSums(select(., c("QPR_Q1_1", "QPR_Q2_1", "QPR_Q3_1", "QPR_Q4_1",
+                                         "QPR_Q5_1", "QPR_Q6_1", "QPR_Q7_1", "QPR_Q8_1",
+                                         "QPR_Q9_1", "QPR_Q10_1", "QPR_Q11_1", "QPR_Q12_1",
+                                         "QPR_Q13_1")), 
+                             na.rm = FALSE),
+         QPR_SUM_2 = rowSums(select(., c("QPR_Q1_2", "QPR_Q2_2", "QPR_Q3_2", "QPR_Q4_2",
+                                         "QPR_Q5_2", "QPR_Q6_2", "QPR_Q7_2", "QPR_Q8_2",
+                                         "QPR_Q9_2", "QPR_Q10_2", "QPR_Q11_2", "QPR_Q12_2",
+                                         "QPR_Q13_2")), 
+                             na.rm = FALSE))
+
 #### MOCS ####
 
 # Check missingness
@@ -720,6 +771,36 @@ jmv::ttestPS(
     desc = TRUE,
     plots = TRUE)
 
+#### QPR ####
 
+jmv::ttestPS(
+    data = merged_data[merged_data$Cohort ==3,],
+    pairs = list(
+        list(
+            i1="QPR_SUM_0",
+            i2="QPR_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+# individual improvement
+filtered_data <- merged_data[merged_data$Cohort ==3,] %>%
+  filter(!is.na(QPR_SUM_0) & !is.na(QPR_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(QPR_pre_post_improvement = QPR_SUM_2 - QPR_SUM_0)
+
+(QPR_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "QPR",
+    Improved = sum(QPR_pre_post_improvement > 0, na.rm = TRUE),
+    No_Change = sum(QPR_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(QPR_pre_post_improvement < 0, na.rm = TRUE)
+  ))
 bind_rows(PHQ_ind_summary, GAD_ind_summary, QOL_ind_summary)
 ```
