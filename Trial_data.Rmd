@@ -804,3 +804,56 @@ filtered_data <- filtered_data %>%
   ))
 bind_rows(PHQ_ind_summary, GAD_ind_summary, QOL_ind_summary)
 ```
+
+```{r Oil Tank}
+
+Tank_long <- readxl::read_xlsx("Oil_Tank_Tracking_per_Session_Long.xlsx")
+
+Tank_long$Beginning_of_group <- as.numeric(Tank_long$Beginning_of_group)
+Tank_long$End_of_group <- as.numeric(Tank_long$End_of_group)
+
+summary(Tank_long$Beginning_of_group)
+summary(Tank_long$End_of_group)
+
+jmv::ttestPS(
+    data = Tank_long,
+    pairs = list(
+        list(
+            i1="Beginning_of_group",
+            i2="End_of_group")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+# Look at individual change
+filtered_data <- Tank_long %>%
+  filter(!is.na(Beginning_of_group) & !is.na(End_of_group))
+
+# Change score
+filtered_data <- filtered_data %>%
+  mutate(Tank_pre_post_improvement = End_of_group - Beginning_of_group)
+
+(filtered_data %>%
+  summarize(
+    Measure = "Oil tank",
+    Improved = sum(Tank_pre_post_improvement > 0, na.rm = TRUE),  # higher scores = better
+    No_Change = sum(Tank_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(Tank_pre_post_improvement < 0, na.rm = TRUE)   # lower scores = worse
+  ))
+
+(filtered_data %>%
+  group_by(Session) %>%
+  summarize(
+    Measure = "Oil tank",
+    Improved = sum(Tank_pre_post_improvement > 0, na.rm = TRUE),
+    No_Change = sum(Tank_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(Tank_pre_post_improvement < 0, na.rm = TRUE)
+  ))
+
+```
+
