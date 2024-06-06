@@ -339,7 +339,28 @@ merged_data <- merged_data %>%
 
 table(merged_data$ID, merged_data$Cohort)
 
-# write.csv(merged_data, "Cohorts_1_2_3_all_data_5.30.csv")
+# Add attrition identifier
+merged_data <- merged_data %>%
+  mutate(Attrition = ifelse(ID %in% c("P22", "P17"), 0, 1))
+
+write.csv(merged_data, "Cohorts_1_2_3_all_data_6.5.csv")
+```
+
+```{r Import new data, eval = FALSE}
+merged_data <- read.csv("Cohorts_1_2_3_all_data_6.5.csv")
+```
+
+```{r Demographics}
+colnames(merged_data)
+
+subset_data <- merged_data %>%
+  filter(Attrition == 1)
+
+table(subset_data$birth_sex_0.m)
+table(subset_data$race_0.m)
+summary(subset_data$age_0.m)
+sd(subset_data$age_0.m)
+
 ```
 
 ```{r Scoring measures}
