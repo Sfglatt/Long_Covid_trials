@@ -326,7 +326,7 @@ for (col in common_cols) {
   merged_data <- merged_data[, -c(which(colnames(merged_data) == paste0(col, ".x")),
                                  which(colnames(merged_data) == paste0(col, ".y")))]
 }
-# All of the ".m" columns are merged with cohorts 2 and 3. The variables without the ".m" suffix were only administered to one of the cohorts (e.g., QPR items were only given to cohort 3).
+# All of the ".m" columns are merged with cohorts 1, 2 and 3. The variables without the ".m" suffix were only administered to one of the cohorts (e.g., QPR items were only given to cohort 3).
 
 # Add cohort identifier
 merged_data <- merged_data %>%
@@ -346,8 +346,30 @@ merged_data <- merged_data %>%
 write.csv(merged_data, "Cohorts_1_2_3_all_data_6.5.csv")
 ```
 
-```{r Import new data, eval = FALSE}
-merged_data <- read.csv("Cohorts_1_2_3_all_data_6.5.csv")
+```{r Weekly energy, eval = FALSE}
+# If you don't have the above data imported, uncomment and run the below:
+# merged_data <- read.csv("Cohorts_1_2_3_all_data_6.5.csv")
+# head(merged_data)
+
+oil_tank <- readxl::read_xlsx("Oil_Tank_Tracking_per_Session_Long.xlsx")
+head(oil_tank)
+
+# Make wider
+oil_tank_wide <- oil_tank %>%
+  pivot_wider(names_from = Session, values_from = c(Beginning_of_group, End_of_group),
+              names_glue = "Energy_{.value}_{Session}")
+
+head(oil_tank_wide)
+
+# merge with quantitative assessments
+merged_quant_oil_data <- merge(
+  merged_data,
+  oil_tank_wide,
+  by = "ID",
+  all = TRUE)
+
+# Save dataset
+write.csv(merged_quant_oil_data, "Cohorts_1_2_3_data_6.6.csv")
 ```
 
 ```{r Demographics}
@@ -360,7 +382,6 @@ table(subset_data$birth_sex_0.m)
 table(subset_data$race_0.m)
 summary(subset_data$age_0.m)
 sd(subset_data$age_0.m)
-
 ```
 
 ```{r Scoring measures}
@@ -877,4 +898,3 @@ filtered_data <- filtered_data %>%
   ))
 
 ```
-
