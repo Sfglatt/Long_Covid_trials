@@ -12,7 +12,7 @@ if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 
 # Cohort 1 - just baseline is separate
 ```{r Cohort 1 baseline}
-c1_baseline <- read.csv("Cohort_1_baseline_numeric.csv")
+c1_baseline <- read.csv("Raw_data/Cohort_1_baseline_numeric.csv")
 
 # Deal with wonky demo format
 collapse_columns <- function(data, prefix) {
@@ -106,7 +106,7 @@ c1_baseline <- c1_baseline %>%
 ```
 
 ```{r Cohort 2 baseline}
-c2_baseline <- readxl::read_xlsx("Cohort_2_baseline_numeric.xlsx")
+c2_baseline <- readxl::read_xlsx("Raw_data/Cohort_2_baseline_numeric.xlsx")
 
 colnames(c2_baseline)
 
@@ -189,8 +189,8 @@ View(c1_2_baseline_merged)
 
 # Cohort 1 and 2 - only the follow-ups, not baseline
 ```{r Cohort 2 dataset}
-c1_2_mid_treatment <- read.csv("Cohort_1_and_2_follow_up_1.csv")
-c1_2_post_treatment <- read.csv("Cohort_1_and_2_follow_up_2.csv")
+c1_2_mid_treatment <- read.csv("Raw_data/Cohort_1_and_2_follow_up_1.csv")
+c1_2_post_treatment <- read.csv("Raw_data/Cohort_1_and_2_follow_up_2.csv")
 nrow(c1_2_post_treatment)
 
 colnames(c1_2_mid_treatment)
@@ -237,9 +237,9 @@ colnames(c1_2_baseline_mid_post_merged)
 
 # Cohort 3
 ```{r Cohort 3 one dataset}
-c3_baseline <- readxl::read_xlsx("Cohort_3_Baseline_Data.xlsx")
-c3_mid_treatment <- readxl::read_xlsx("Cohort_3_follow_up_1.xlsx")
-c3_post_treatment <- read.csv("Cohort_3_Follow_up_2.csv")
+c3_baseline <- readxl::read_xlsx("Raw_data/Cohort_3_Baseline_Data.xlsx")
+c3_mid_treatment <- readxl::read_xlsx("Raw_data/Cohort_3_follow_up_1.xlsx")
+c3_post_treatment <- read.csv("Raw_data/Cohort_3_Follow_up_2.csv")
 
 colnames(c3_baseline) <- gsub(" ", "_", colnames(c3_baseline))
 colnames(c3_mid_treatment) <- gsub(" ", "_", colnames(c3_mid_treatment))
@@ -299,7 +299,7 @@ c3_baseline_mid_post_merged <- c3_baseline_mid_post_merged %>%
   rename(QPR_Q2_2 = QPR_Q2, 
          QPR_Q1_1 = QPR_Q1)
 
-# write.csv(c3_baseline_mid_post_merged, "Cohort_3_all_data_5.29.csv")
+# write.csv(c3_baseline_mid_post_merged, "Created_datasets/Cohort_3_all_data_5.29.csv")
 ```
 
 ```{r Combine merged cohorts 2 and 3}
@@ -343,7 +343,7 @@ table(merged_data$ID, merged_data$Cohort)
 merged_data <- merged_data %>%
   mutate(Attrition = ifelse(ID %in% c("P22", "P17"), 0, 1))
 
-write.csv(merged_data, "Cohorts_1_2_3_all_data_6.5.csv")
+# write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_all_data_6.5.csv")
 ```
 
 ```{r Weekly energy, eval = FALSE}
@@ -351,7 +351,7 @@ write.csv(merged_data, "Cohorts_1_2_3_all_data_6.5.csv")
 # merged_data <- read.csv("Cohorts_1_2_3_all_data_6.5.csv")
 # head(merged_data)
 
-oil_tank <- readxl::read_xlsx("Oil_Tank_Tracking_per_Session_Long.xlsx")
+oil_tank <- readxl::read_xlsx("Created_datasets/Oil_Tank_Tracking_per_Session_Long.xlsx")
 head(oil_tank)
 
 # Make wider
@@ -369,7 +369,32 @@ merged_quant_oil_data <- merge(
   all = TRUE)
 
 # Save dataset
-write.csv(merged_quant_oil_data, "Cohorts_1_2_3_data_6.6.csv")
+# write.csv(merged_quant_oil_data, "Created_datasets/Cohorts_1_2_3_data_6.6.csv")
+```
+
+```{r Weekly attendance, eval = FALSE}
+# If you don't have the above data imported, uncomment and run the below:
+# merged_data <- read.csv("Cohorts_1_2_3_data_6.6.csv")
+# head(merged_data)
+
+Attendance <- read.csv("Raw_data/Deidentified_Session_Tracking_5.16.24.csv") 
+# This is slightly modified from the original version
+
+Attendance <- Attendance[-c(1, 10, 11, 18, 19), ] # Remove identifiers mid csv
+Attendance <- Attendance[, -((ncol(Attendance)-2):ncol(Attendance))] # Remove last three columns
+names(Attendance) <- gsub("^X([12])_(.*)$", "Mod\\1_\\2_attend", names(Attendance)) # Rename
+Attendance <- Attendance %>%
+  rename(ID = Session..) # for merging
+
+# Merge attendance into main 
+merged_quant_oil_attend_data <- merge(
+  merged_quant_oil_data,
+  Attendance,
+  by = "ID",
+  all = TRUE)
+
+# Save dataset
+# write.csv(merged_quant_oil_attend_data, "Created_datasets/Cohorts_1_2_3_data_6.7.csv")
 ```
 
 ```{r Demographics}
@@ -382,10 +407,13 @@ table(subset_data$birth_sex_0.m)
 table(subset_data$race_0.m)
 summary(subset_data$age_0.m)
 sd(subset_data$age_0.m)
+# etc.
 ```
 
 ```{r Scoring measures}
 merged_data <- merged_data %>% mutate_at(vars(ends_with(".m")), as.numeric)
+
+# There are much more efficient ways to write this code. I'm spelling everything out deliberately for ease of verification. 
 
 #### AIM / IAM / FIM ####
 
