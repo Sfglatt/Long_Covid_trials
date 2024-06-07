@@ -15,7 +15,7 @@ if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 # Cohort 1 - just baseline is separate
 ```{r Cohort 1 baseline}
 c1_baseline <- read.csv("Raw_data/Cohort_1_baseline_numeric.csv")
-
+View(c1_baseline)
 # Deal with wonky demo format
 collapse_columns <- function(data, prefix) {
   result <- apply(data[, grep(paste0("^", prefix, "___"), names(data))], 1, function(row) {
@@ -81,7 +81,7 @@ colnames(c1_baseline) <- relevant_columns
 colnames(c1_baseline) <- gsub(" ", "_", colnames(c1_baseline))
 c1_baseline <- c1_baseline %>%
   rename_all(~ str_replace_all(., "-", "."))
-colnames(c1_baseline)
+
 c1_baseline <- c1_baseline %>%
   rename(PHQ.9_how_diff_0 = PHQ.9_how_difficult_0, 
          GAD.7_sc_diff_0 = sc_difficult_0, 
@@ -105,6 +105,16 @@ c1_baseline <- c1_baseline %>%
          WHODAS_H1_0 = WHODAS_h1_0,
          WHODAS_H2_0 = WHODAS_h2_0,
          WHODAS_H3_0 = WHODAS_h3_0)
+
+# SBQ-R values are characters / change to raw coding
+c1_baseline$SBQ.R_Q1_0 <- recode(c1_baseline$SBQ.R_Q1_0,     # Item 1
+                                 '2b' = '3', 
+                                 '3a' = '3', 
+                                 '3b' = '4', 
+                                 '4a' = '5', 
+                                 '4b' = '6')
+
+c1_baseline$SBQ.R_Q3_0[c1_baseline$SBQ.R_Q3_0 == '2b'] <- '3' # Item 3
 ```
 
 ```{r Cohort 2 baseline}
@@ -141,15 +151,17 @@ c2_baseline <- c2_baseline %>%
   rename(GAD.7_sc_diff_0 = GAD._7_sc_diff_0, 
          c19yrs_health_now_0 = c19yrs_health_now_0...96_0, # Qualtrics had them with the same label, verified the actual Qs
          c19yrs_health_pre_0 = c19yrs_health_now_0...97_0)
+
+# PHQ.9_how_diff_0 
+# GAD.7_sc_diff_0 
 ```
 
 ```{r Merge cohort 1 and 2 baseline}
 # Look at variable discrepancies
 setdiff(colnames(c1_baseline_2), colnames(c2_baseline))
-setdiff(colnames(c2_baseline), colnames(c1_baseline_2))
+setdiff(colnames(c2_baseline), colnames(c1_baseline))
 
 # Remove cohort 1 wonky demo information:
-colnames(c1_baseline)
 c1_baseline_2 <- c1_baseline[, -c(2:21, # Interview Qs
                                 24:89, # oddly split demo questions that were merged above
                                 95:105, # oddly split demo questions that were merged above
@@ -224,25 +236,36 @@ for (col in names(c1_2_post_treatment)) {
     names(c1_2_post_treatment)[names(c1_2_post_treatment) == col] <- paste0(col, "_2")
   }
 }
-```
 
+colnames(c1_2_mid_treatment)
+colnames(c1_2_baseline_merged)
+colnames(c1_2_post_treatment)
+
+# "GAD..7_sc_difficulty_1
+
+c1_2_mid_treatment <- c1_2_mid_treatment %>%
+  rename(GAD.7_sc_diff_1 = GAD..7_sc_difficulty_1, 
+         PHQ.9_how_diff_1 = PHQ.9_how_difficult_1)
+
+c1_2_post_treatment <- c1_2_post_treatment %>%
+  rename(GAD.7_sc_diff_2 = GAD..7_sc_difficul_2, 
+         PHQ.9_how_diff_2 = PHQ.9_difficult_2)
+```
 
 ```{r Cohort 2 dataset merge pre mid post}
 c1_2_mid_post_merged <- merge(c1_2_mid_treatment, c1_2_post_treatment, by = "ID", all.x = TRUE)
-colnames(c1_2_mid_post_merged)
 c1_2_mid_post_merged <- c1_2_mid_post_merged[-c(1:2), ]
 
 c1_2_baseline_mid_post_merged <- merge(c1_2_baseline_merged, c1_2_mid_post_merged, by = "ID", all.s = TRUE)
 head(c1_2_baseline_mid_post_merged)
-colnames(c1_2_baseline_mid_post_merged)
 ```
 
 # Cohort 3
 ```{r Cohort 3 one dataset}
 c3_baseline <- readxl::read_xlsx("Raw_data/Cohort_3_Baseline_Data.xlsx")
 c3_mid_treatment <- readxl::read_xlsx("Raw_data/Cohort_3_follow_up_1.xlsx")
-c3_post_treatment <- read.csv("Raw_data/Cohort_3_Follow_up_2.csv")
-
+c3_post_treatment <- read.csv("Raw_data/Cohort_3_follow_up_2.csv")
+View(c1_baseline)
 colnames(c3_baseline) <- gsub(" ", "_", colnames(c3_baseline))
 colnames(c3_mid_treatment) <- gsub(" ", "_", colnames(c3_mid_treatment))
 colnames(c3_post_treatment) <- gsub(" ", "_", colnames(c3_post_treatment))
@@ -255,7 +278,7 @@ c3_baseline <- c3_baseline %>%
 c3_mid_treatment <- c3_mid_treatment %>%
   rename_all(~ str_replace_all(., "-", "."))
 
-c3_mid_treatment <- c3_mid_treatment %>%
+c3_post_treatment <- c3_post_treatment %>%
   rename_all(~ str_replace_all(., "-", "."))
 
 # For some reason the Covid-19 "How good or bad is your health overall in the last 7 days (now)?" and "How good or bad was your health overall Pre-COVID?" have the same label in Qualtrics - "c19yrs_health_now_0".  2 columns can't have the same name, so R appended random identifiers to distinguish them. Fixing them below: 
@@ -283,6 +306,9 @@ for (col in names(c3_post_treatment)) {
   }
 }
 
+c3_post_treatment <- c3_post_treatment[-8, ] # Remove Ps partial response
+View(c3_post_treatment)
+
 # Merge the three time points into one dataset
 c3_baseline_mid_merged <- merge(c3_baseline, c3_mid_treatment, by = "ID", all.x = TRUE)
 colnames(c3_baseline_mid_merged)
@@ -299,7 +325,12 @@ colnames(c3_baseline_mid_post_merged)
 
 c3_baseline_mid_post_merged <- c3_baseline_mid_post_merged %>%
   rename(QPR_Q2_2 = QPR_Q2, 
-         QPR_Q1_1 = QPR_Q1)
+         QPR_Q1_1 = QPR_Q1, 
+         GAD.7_sc_diff_0 = GAD._7_sc_diff_0,
+         GAD.7_sc_diff_1 = GAD._7_sc_difficulty_1,
+         GAD.7_sc_diff_2 = GAD..7_sc_difficul_2, 
+         PHQ.9_how_diff_1 = PHQ.9_how_difficult_1,
+         PHQ.9_how_diff_2 = PHQ.9_difficult_2)
 
 # write.csv(c3_baseline_mid_post_merged, "Created_datasets/Cohort_3_all_data_5.29.csv")
 ```
@@ -364,7 +395,7 @@ oil_tank_wide <- oil_tank %>%
 head(oil_tank_wide)
 
 # merge with quantitative assessments
-merged_quant_oil_data <- merge(
+merged_data <- merge(
   merged_data,
   oil_tank_wide,
   by = "ID",
@@ -389,14 +420,14 @@ Attendance <- Attendance %>%
   rename(ID = Session..) # for merging
 
 # Merge attendance into main 
-merged_quant_oil_attend_data <- merge(
-  merged_quant_oil_data,
+merged_data <- merge(
+  merged_data,
   Attendance,
   by = "ID",
   all = TRUE)
 
 # Rename follow-up Qs about daily diaries
-merged_quant_oil_attend_data <- merged_quant_oil_attend_data %>%
+merged_data <- merged_data %>%
   rename(Daily_diary_easy_all = Q253_1_2, 
          Daily_diary_easy_b1 = Q253_2, 
          Daily_diary_easy_b2 = Q253_3_2,
@@ -406,7 +437,8 @@ merged_quant_oil_attend_data <- merged_quant_oil_attend_data %>%
          Daily_diary_future = Q253_7_2)
 
 # Save dataset
-write.csv(merged_quant_oil_attend_data, "Created_datasets/Cohorts_1_2_3_data_6.6.csv")
+# write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.7.csv")
+# colnames(merged_data)
 ```
 
 ```{r Demographics}
@@ -428,8 +460,8 @@ merged_data <- merged_data %>% mutate_at(vars(ends_with(".m")), as.numeric)
 # There are much more efficient ways to write this code. I'm spelling everything out deliberately for ease of verification.
 
 # If you don't have the above data imported, uncomment and run the below:
-merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.6.csv")
-head(merged_data)
+# merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.6.csv")
+# head(merged_data)
 
 #### AIM / IAM / FIM ####
 
@@ -756,6 +788,202 @@ whodas_items <- c(
 
 (sapply(whodas_items, function(col) sum(is.na(merged_data[[col]]))))
 
+# WHODAS_d4_5_0.m
+
+# one participant is missing domain 4 item 5 so we need to impute. Use 'merged_dataset_imputed'
+merged_data_imputed[, grep("^WHODAS_d4_\\d+_0\\.m$", 
+                     colnames(merged_data_imputed))] <- t(apply(merged_data_imputed[, grep("^WHODAS_d4_\\d+_0\\.m$",
+                                                                                           colnames(merged_data_imputed))],
+                                                          1,
+                                                          function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
+summary(merged_data$WHODAS_d4_5_0.m)
+summary(merged_data_imputed$WHODAS_d4_5_0.m) # good
+
+# Identify imputed columns
+merged_data_imputed <- merged_data_imputed %>%
+  rename(WHODAS_d4_5_0_imputed.m = WHODAS_d4_5_0.m)
+
+# merge with original
+merged_data <- merge(
+  merged_data,
+  merged_data_imputed[, c("ID", "WHODAS_d4_5_0_imputed.m")],
+  by = "ID",
+  all = TRUE)
+
+merged_data <- merged_data %>%
+  mutate(# Domain 1
+         WHO_D1_SUM_0 = rowSums(select(., c("WHODAS_d1_1_0.m", "WHODAS_d1_2_0.m", "WHODAS_d1_3_0.m", 
+                                            "WHODAS_d1_4_0.m", "WHODAS_d4_5_0_imputed.m", "WHODAS_d1_6_0.m")), 
+                                na.rm = FALSE),
+         WHO_D1_SUM_1 = rowSums(select(., c("WHODAS_d1_1_1.m", "WHODAS_d1_2_1.m", "WHODAS_d1_3_1.m", 
+                                            "WHODAS_d1_4_1.m", "WHODAS_d1_5_1.m", "WHODAS_d1_6_1.m")), 
+                                na.rm = FALSE),
+         WHO_D1_SUM_2 = rowSums(select(., c("WHODAS_d1_1_2.m", "WHODAS_d1_2_2.m", "WHODAS_d1_3_2.m", 
+                                            "WHODAS_d1_4_2.m", "WHODAS_d1_5_2.m", "WHODAS_d1_6_2.m")), 
+                                na.rm = FALSE), 
+         
+         # Domain 2
+         WHO_D2_SUM_0 = rowSums(select(., c("WHODAS_d2_1_0.m", "WHODAS_d2_2_0.m", "WHODAS_d2_3_0.m", 
+                                            "WHODAS_d2_4_0.m", "WHODAS_d2_5_0.m")), 
+                                na.rm = FALSE),
+         WHO_D2_SUM_1 = rowSums(select(., c("WHODAS_d2_1_1.m", "WHODAS_d2_2_1.m", "WHODAS_d2_3_1.m", 
+                                            "WHODAS_d2_4_1.m", "WHODAS_d2_5_1.m")), 
+                                na.rm = FALSE),
+         WHO_D2_SUM_2 = rowSums(select(., c("WHODAS_d2_1_2.m", "WHODAS_d2_2_2.m", "WHODAS_d2_3_2.m", 
+                                            "WHODAS_d2_4_2.m", "WHODAS_d2_5_2.m")), 
+                                na.rm = FALSE),
+         
+         # Domain 3
+         WHO_D3_SUM_0 = rowSums(select(., c("WHODAS_d3_1_0.m", "WHODAS_d3_2_0.m", "WHODAS_d3_3_0.m", "WHODAS_d3_4_0.m")), 
+                                na.rm = FALSE),
+         WHO_D3_SUM_1 = rowSums(select(., c("WHODAS_d3_1_1.m", "WHODAS_d3_2_1.m", "WHODAS_d3_3_1.m", "WHODAS_d3_4_1.m")), 
+                                na.rm = FALSE),
+         WHO_D3_SUM_2 = rowSums(select(., c("WHODAS_d3_1_2.m", "WHODAS_d3_2_2.m", "WHODAS_d3_3_2.m", "WHODAS_d3_4_2.m")), 
+                                na.rm = FALSE),
+         
+         # Domain 4
+         WHO_D4_SUM_0 = rowSums(select(., c("WHODAS_d4_1_0.m", "WHODAS_d4_2_0.m", "WHODAS_d4_3_0.m", 
+                                            "WHODAS_d4_4_0.m", "WHODAS_d4_5_0_imputed.m")), 
+                                na.rm = FALSE),
+         WHO_D4_SUM_1 = rowSums(select(., c("WHODAS_d4_1_1.m", "WHODAS_d4_2_1.m", "WHODAS_d4_3_1.m", 
+                                            "WHODAS_d4_4_1.m", "WHODAS_d4_5_1.m")), 
+                                na.rm = FALSE),
+         WHO_D4_SUM_2 = rowSums(select(., c("WHODAS_d4_1_2.m", "WHODAS_d4_2_2.m", "WHODAS_d4_3_2.m", 
+                                            "WHODAS_d4_4_2.m", "WHODAS_d4_5_2.m")), 
+                                na.rm = FALSE), 
+         
+         # Domain 5 - FULL. Note that na.rm = true, because items 5-8 are only filled out by people currently working or in school.
+         WHO_D5_SUM_0 = rowSums(select(., c("WHODAS_d5_1_0.m", "WHODAS_d5_2_0.m", "WHODAS_d5_3_0.m", "WHODAS_d5_4_0.m",
+                                            "WHODAS_d5_5_0.m", "WHODAS_d5_6_0.m", "WHODAS_d5_7_0.m", "WHODAS_d5_8_0.m")), 
+                                na.rm = TRUE),
+         WHO_D5_SUM_1 = rowSums(select(., c("WHODAS_d5_1_1.m", "WHODAS_d5_2_1.m", "WHODAS_d5_3_1.m", "WHODAS_d5_4_1.m",
+                                            "WHODAS_d5_5_1.m", "WHODAS_d5_6_1.m", "WHODAS_d5_7_1.m", "WHODAS_d5_8_1.m")), 
+                                na.rm = TRUE),
+         WHO_D5_SUM_2 = rowSums(select(., c("WHODAS_d5_1_2.m", "WHODAS_d5_2_2.m", "WHODAS_d5_3_2.m", "WHODAS_d5_4_2.m",
+                                            "WHODAS_d5_5_2.m", "WHODAS_d5_6_2.m", "WHODAS_d5_7_2.m", "WHODAS_d5_8_2.m")), 
+                                na.rm = TRUE),
+         # Domain 5 - life activities household (everyone fills this part out)
+         WHO_D5a_SUM_0 = rowSums(select(., c("WHODAS_d5_1_0.m", "WHODAS_d5_2_0.m", "WHODAS_d5_3_0.m", "WHODAS_d5_4_0.m")), 
+                                 na.rm = FALSE),
+         WHO_D5a_SUM_1 = rowSums(select(., c("WHODAS_d5_1_1.m", "WHODAS_d5_2_1.m", "WHODAS_d5_3_1.m", "WHODAS_d5_4_1.m")), 
+                                 na.rm = FALSE),
+         WHO_D5a_SUM_2 = rowSums(select(., c("WHODAS_d5_1_2.m", "WHODAS_d5_2_2.m", "WHODAS_d5_3_2.m", "WHODAS_d5_4_2.m")), 
+                                 na.rm = FALSE),
+         # Domain 5 - life activities school / work (not everyone fills out)
+         WHO_D5b_SUM_0 = rowSums(select(., c( "WHODAS_d5_5_0.m", "WHODAS_d5_6_0.m", "WHODAS_d5_7_0.m", "WHODAS_d5_8_0.m")), 
+                                 na.rm = FALSE),
+         WHO_D5b_SUM_1 = rowSums(select(., c("WHODAS_d5_5_1.m", "WHODAS_d5_6_1.m", "WHODAS_d5_7_1.m", "WHODAS_d5_8_1.m")), 
+                                 na.rm = FALSE),
+         WHO_D5b_SUM_2 = rowSums(select(., c("WHODAS_d5_5_2.m", "WHODAS_d5_6_2.m", "WHODAS_d5_7_2.m", "WHODAS_d5_8_2.m")), 
+                                 na.rm = FALSE),
+         
+         # Domain 6
+         WHO_D6_SUM_0 = rowSums(select(., c("WHODAS_d6_1_0.m", "WHODAS_d6_2_0.m", "WHODAS_d6_3_0.m", "WHODAS_d6_4_0.m",
+                                            "WHODAS_d6_5_0.m", "WHODAS_d6_6_0.m", "WHODAS_d6_7_0.m", "WHODAS_d6_8_0.m")), 
+                             na.rm = FALSE),
+         WHO_D6_SUM_1 = rowSums(select(., c("WHODAS_d6_1_1.m", "WHODAS_d6_2_1.m", "WHODAS_d6_3_1.m", "WHODAS_d6_4_1.m",
+                                            "WHODAS_d6_5_1.m", "WHODAS_d6_6_1.m", "WHODAS_d6_7_1.m", "WHODAS_d6_8_1.m")), 
+                             na.rm = FALSE),
+         WHO_D6_SUM_2 = rowSums(select(., c("WHODAS_d6_1_2.m", "WHODAS_d6_2_2.m", "WHODAS_d6_3_2.m", "WHODAS_d6_4_2.m",
+                                            "WHODAS_d6_5_2.m", "WHODAS_d6_6_2.m", "WHODAS_d6_7_2.m", "WHODAS_d6_8_2.m")), 
+                             na.rm = FALSE))
+
+#### Suicide risk screener ####
+
+# Verify raw coding
+summary(merged_data$SBQ.R_Q1_0.m)
+summary(merged_data$SBQ.R_Q1_1.m)
+summary(merged_data$SBQ.R_Q1_2.m)
+
+summary(merged_data$SBQ.R_Q2_0.m)
+summary(merged_data$SBQ.R_Q2_1.m)
+summary(merged_data$SBQ.R_Q2_2.m)
+
+summary(merged_data$SBQ.R_Q3_0.m)
+summary(merged_data$SBQ.R_Q3_1.m)
+summary(merged_data$SBQ.R_Q3_2.m)
+
+summary(merged_data$SBQ.R_Q4_0.m)
+summary(merged_data$SBQ.R_Q4_1.m)
+summary(merged_data$SBQ.R_Q4_2.m)
+
+# SBQ-R 2 and SBQ-R 4 do not need to be recoded. 
+
+# item 1: 
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q1_0_rec.m = case_when(
+    SBQ.R_Q1_0.m %in% c(3, 4) ~ 3,
+    SBQ.R_Q1_0.m %in% c(5, 6) ~ 4, 
+    TRUE ~ SBQ.R_Q1_0.m # Keep other values unchanged so 1 = 1 and 2 = 2 in line with SBQ-R scoring
+  ))
+
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q1_1_rec.m = case_when(
+    SBQ.R_Q1_1.m %in% c(3, 4) ~ 3,
+    SBQ.R_Q1_1.m %in% c(5, 6) ~ 4, 
+    TRUE ~ SBQ.R_Q1_1.m 
+  ))
+
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q1_2_rec.m = case_when(
+    SBQ.R_Q1_2.m %in% c(3, 4) ~ 3,
+    SBQ.R_Q1_2.m %in% c(5, 6) ~ 4, 
+    TRUE ~ SBQ.R_Q1_2.m 
+  ))
+
+# item 3: 
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q3_0_rec.m = case_when(
+    SBQ.R_Q3_0.m %in% c(2, 3) ~ 2,
+    SBQ.R_Q3_0.m %in% c(4, 5) ~ 3,
+    TRUE ~ SBQ.R_Q3_0.m  # Keep other values unchanged so 1 = 1 in line with SBQ-R scoring
+  ))
+
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q3_1_rec.m = case_when(
+    SBQ.R_Q3_1.m %in% c(2, 3) ~ 2,
+    SBQ.R_Q3_1.m %in% c(4, 5) ~ 3,
+    TRUE ~ SBQ.R_Q3_1.m  
+  ))
+
+merged_data <- merged_data %>%
+  mutate(SBQ.R_Q3_2_rec.m = case_when(
+    SBQ.R_Q3_2.m %in% c(2, 3) ~ 2,
+    SBQ.R_Q3_2.m %in% c(4, 5) ~ 3,
+    TRUE ~ SBQ.R_Q3_2.m  
+  ))
+
+# SBQ-R total scores: 
+merged_data <- merged_data %>%
+  mutate(SBQR_total_0 = 
+           SBQ.R_Q1_0_rec.m # recoded item 1
+         + SBQ.R_Q2_0.m     # item 2 
+         + SBQ.R_Q3_0_rec.m # recoded item 3
+         + SBQ.R_Q4_0.m)    # item 4
+
+merged_data <- merged_data %>%
+  mutate(SBQR_total_1 = 
+           SBQ.R_Q1_1_rec.m 
+         + SBQ.R_Q2_1.m    
+         + SBQ.R_Q3_1_rec.m 
+         + SBQ.R_Q4_1.m)  
+
+merged_data <- merged_data %>%
+  mutate(SBQR_total_2 = 
+           SBQ.R_Q1_2_rec.m 
+         + SBQ.R_Q2_2.m    
+         + SBQ.R_Q3_2_rec.m 
+         + SBQ.R_Q4_2.m)  
+
+sum(merged_data[merged_data$ID != "P02" # Missing item 1
+                & merged_data$Attrition == 1,]$SBQR_total_0 >= 7) / 
+  length(merged_data[merged_data$ID != "P02" # Missing item 1
+                     & merged_data$Attrition == 1,]$SBQR_total_0) * 100 # % at risk cutoff
+
+write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_latest.csv", row.names = TRUE)
+```
+
+```{r Descriptives, eval = FALSE}
 #### Descriptives ####
 subset_data <- merged_data[merged_data$Attrition == 1, # Filter out attrition
                            c(714:743,  # IAM, AIM, FIM, PHQ-9, FSCQ, QPR, MOCS
@@ -764,10 +992,10 @@ subset_data <- merged_data[merged_data$Attrition == 1, # Filter out attrition
 
 descriptives <- describe(subset_data)
 descriptives
-write.csv(descriptives, "Created_datasets/Long_Covid_summary_output_6.6.csv", row.names = TRUE)
+# write.csv(descriptives, "Created_datasets/Long_Covid_summary_output_6.6.csv", row.names = TRUE)
 ```
 
-```{r Paired comparison}
+```{r Paired comparison, eval = FALSE}
 #### QOL ####
 # use imputed dataset
 
@@ -932,11 +1160,57 @@ filtered_data <- filtered_data %>%
     Worsened = sum(QPR_pre_post_improvement < 0, na.rm = TRUE)
   ))
 bind_rows(PHQ_ind_summary, GAD_ind_summary, QOL_ind_summary)
+
+#### WHODAS ####
+jmv::ttestPS(
+    data = merged_data[merged_data$Attrition == 1 
+                       # & merged_data$ID != "P01" 
+                       # & merged_data$ID != "P06"
+                       # & merged_data$ID != "P07"
+                       # & merged_data$ID != "P08"
+                       # & merged_data$ID != "P022"
+                       # Need to exclude when looking at full domain 5; 5b applied at baseline and not at post-treatment.
+                       ,],
+    pairs = list(
+        list(
+            i1="WHO_D6_SUM_0",
+            i2="WHO_D6_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+# individual improvement
+filtered_data <- merged_data %>%
+  filter(!is.na(WHO_D5_SUM_0) & !is.na(WHO_D5_SUM_2))
+
+filtered_data <- filtered_data[filtered_data$Attrition == 1 
+                        & filtered_data$ID != "P01" 
+                        & filtered_data$ID != "P06"
+                        & filtered_data$ID != "P07"
+                        & filtered_data$ID != "P08"
+                        & filtered_data$ID != "P022"
+                       # Need to exclude when looking at full domain 5; 5b applied at baseline and not at post-treatment.
+                       ,] %>%
+  mutate(WHO_D5_pre_post_improvement = WHO_D5_SUM_2 - WHO_D5_SUM_0)
+
+(WHO_D5_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "WHO_D5",
+    Improved = sum(WHO_D5_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(WHO_D5_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(WHO_D5_pre_post_improvement > 0, na.rm = TRUE)
+  ))
+
 ```
 
-```{r Oil Tank}
+```{r Oil Tank, eval = FALSE}
 
-Tank_long <- readxl::read_xlsx("Oil_Tank_Tracking_per_Session_Long.xlsx")
+Tank_long <- readxl::read_xlsx("Created_datasets/Oil_Tank_Tracking_per_Session_Long.xlsx")
 
 Tank_long$Beginning_of_group <- as.numeric(Tank_long$Beginning_of_group)
 Tank_long$End_of_group <- as.numeric(Tank_long$End_of_group)
