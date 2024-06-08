@@ -713,17 +713,17 @@ merged_data <- merged_data %>%
   mutate(QPR_SUM_0 = rowSums(select(., c("QPR_Q1_0", "QPR_Q2_0", "QPR_Q3_0", "QPR_Q4_0",
                                          "QPR_Q5_0", "QPR_Q6_0", "QPR_Q7_0", "QPR_Q8_0",
                                          "QPR_Q9_0", "QPR_Q10_0", "QPR_Q11_0", "QPR_Q12_0",
-                                         "QPR_Q13_0")), 
+                                         "QPR_Q13_0", "QPR_Q14_0", "QPR_Q15_0")), 
                              na.rm = FALSE),
          QPR_SUM_1 = rowSums(select(., c("QPR_Q1_1", "QPR_Q2_1", "QPR_Q3_1", "QPR_Q4_1",
                                          "QPR_Q5_1", "QPR_Q6_1", "QPR_Q7_1", "QPR_Q8_1",
                                          "QPR_Q9_1", "QPR_Q10_1", "QPR_Q11_1", "QPR_Q12_1",
-                                         "QPR_Q13_1")), 
+                                         "QPR_Q13_1", "QPR_Q14_1", "QPR_Q15_1")), 
                              na.rm = FALSE),
          QPR_SUM_2 = rowSums(select(., c("QPR_Q1_2", "QPR_Q2_2", "QPR_Q3_2", "QPR_Q4_2",
                                          "QPR_Q5_2", "QPR_Q6_2", "QPR_Q7_2", "QPR_Q8_2",
                                          "QPR_Q9_2", "QPR_Q10_2", "QPR_Q11_2", "QPR_Q12_2",
-                                         "QPR_Q13_2")), 
+                                         "QPR_Q13_2",  "QPR_Q14_2", "QPR_Q15_2")), 
                              na.rm = FALSE))
 
 #### MOCS ####
@@ -731,7 +731,7 @@ merged_data <- merged_data %>%
 # Check missingness
 MOCS_items <- c("MOCS_Q1", "MOCS_Q2", "MOCS_Q3", "MOCS_Q4", "MOCS_Q5", 
                 "MOCS_Q6", "MOCS_Q7", "MOCS_Q8", "MOCS_Q9", "MOCS_Q10", 
-                "MOCS_Q11", "MOCS_Q12", "MOCS_Q12")
+                "MOCS_Q11", "MOCS_Q12", "MOCS_Q12", "MOCS_Q13")
 
 MOCS_items <- c(
   paste0(MOCS_items, "_0.m"),
@@ -813,7 +813,7 @@ merged_data <- merge(
 merged_data <- merged_data %>%
   mutate(# Domain 1
          WHO_D1_SUM_0 = rowSums(select(., c("WHODAS_d1_1_0.m", "WHODAS_d1_2_0.m", "WHODAS_d1_3_0.m", 
-                                            "WHODAS_d1_4_0.m", "WHODAS_d4_5_0_imputed.m", "WHODAS_d1_6_0.m")), 
+                                            "WHODAS_d1_4_0.m", "WHODAS_d1_5_0.m", "WHODAS_d1_6_0.m")), 
                                 na.rm = FALSE),
          WHO_D1_SUM_1 = rowSums(select(., c("WHODAS_d1_1_1.m", "WHODAS_d1_2_1.m", "WHODAS_d1_3_1.m", 
                                             "WHODAS_d1_4_1.m", "WHODAS_d1_5_1.m", "WHODAS_d1_6_1.m")), 
@@ -870,7 +870,7 @@ merged_data <- merged_data %>%
          WHO_D5a_SUM_2 = rowSums(select(., c("WHODAS_d5_1_2.m", "WHODAS_d5_2_2.m", "WHODAS_d5_3_2.m", "WHODAS_d5_4_2.m")), 
                                  na.rm = FALSE),
          # Domain 5 - life activities school / work (not everyone fills out)
-         WHO_D5b_SUM_0 = rowSums(select(., c( "WHODAS_d5_5_0.m", "WHODAS_d5_6_0.m", "WHODAS_d5_7_0.m", "WHODAS_d5_8_0.m")), 
+         WHO_D5b_SUM_0 = rowSums(select(., c("WHODAS_d5_5_0.m", "WHODAS_d5_6_0.m", "WHODAS_d5_7_0.m", "WHODAS_d5_8_0.m")), 
                                  na.rm = FALSE),
          WHO_D5b_SUM_1 = rowSums(select(., c("WHODAS_d5_5_1.m", "WHODAS_d5_6_1.m", "WHODAS_d5_7_1.m", "WHODAS_d5_8_1.m")), 
                                  na.rm = FALSE),
@@ -1173,8 +1173,8 @@ jmv::ttestPS(
                        ,],
     pairs = list(
         list(
-            i1="WHO_D6_SUM_0",
-            i2="WHO_D6_SUM_2")),
+            i1="WHO_D1_SUM_0",
+            i2="WHO_D1_SUM_2")),
     wilcoxon = TRUE,
     norm = TRUE,
     qq = TRUE,
