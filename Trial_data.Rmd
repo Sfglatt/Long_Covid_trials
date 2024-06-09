@@ -107,8 +107,8 @@ c1_baseline <- c1_baseline %>%
          WHODAS_H3_0 = WHODAS_h3_0)
 
 # SBQ-R values are characters / change to raw coding
+
 c1_baseline$SBQ.R_Q1_0 <- recode(c1_baseline$SBQ.R_Q1_0,     # Item 1
-                                 '2b' = '3', 
                                  '3a' = '3', 
                                  '3b' = '4', 
                                  '4a' = '5', 
@@ -379,7 +379,7 @@ merged_data <- merged_data %>%
 # write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_all_data_6.5.csv")
 ```
 
-```{r Weekly energy, eval = FALSE}
+```{r Weekly energy}
 # If you don't have the above data imported, uncomment and run the below:
 # merged_data <- read.csv("Cohorts_1_2_3_all_data_6.5.csv")
 # head(merged_data)
@@ -405,7 +405,7 @@ merged_data <- merge(
 # write.csv(merged_quant_oil_data, "Created_datasets/Cohorts_1_2_3_data_6.6.csv")
 ```
 
-```{r Weekly attendance, eval = FALSE}
+```{r Weekly attendance}
 # If you don't have the above data imported, uncomment and run the below:
 # merged_data <- read.csv("Cohorts_1_2_3_data_6.6.csv")
 # head(merged_data)
@@ -437,7 +437,7 @@ merged_data <- merged_data %>%
          Daily_diary_future = Q253_7_2)
 
 # Save dataset
-# write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.7.csv")
+write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.8_raw.csv")
 # colnames(merged_data)
 ```
 
@@ -455,12 +455,15 @@ sd(subset_data$age_0.m)
 ```
 
 ```{r Scoring measures}
-merged_data <- merged_data %>% mutate_at(vars(ends_with(".m")), as.numeric)
+colnames(merged_data)
+
+merged_data <- merged_data %>% 
+  mutate_at(vars(ends_with(".m"), -starts_with("c19"), -starts_with("C19")), as.numeric)
 
 # There are much more efficient ways to write this code. I'm spelling everything out deliberately for ease of verification.
 
 # If you don't have the above data imported, uncomment and run the below:
-# merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.6.csv")
+# merged_data <- read.csv("Created_datasets/Created_datasets/Cohorts_1_2_3_data_latest.csv")
 # head(merged_data)
 
 #### AIM / IAM / FIM ####
@@ -694,7 +697,7 @@ merged_data <- merged_data %>%
                              na.rm = FALSE))
 
 #### QPR ####
-# only cohort 3 recievved this
+# only cohort 3 recieved this
 
 # Check missingness
 QPR_items <- c("QPR_Q1", "QPR_Q2", "QPR_Q3", "QPR_Q4", "QPR_Q5", 
@@ -980,6 +983,184 @@ sum(merged_data[merged_data$ID != "P02" # Missing item 1
   length(merged_data[merged_data$ID != "P02" # Missing item 1
                      & merged_data$Attrition == 1,]$SBQR_total_0) * 100 # % at risk cutoff
 
+#### C19 symptoms ####
+
+#  the highest item FROM each question number - summed - equals the symptom severity score. 
+
+# choosing the item with the highest score for each question (when applicable, not all questions are >1 item)
+merged_data$c19_Q1_highest_2.m <- pmax(merged_data$c19yrs_bre_now_res_2.m, 
+                                       merged_data$c19yrs_bre_now_ly_2.m, 
+                                       merged_data$c19yrs_bre_now_dre_2.m,
+                                       merged_data$c19yrs_bre_now_wal_2.m, na.rm = TRUE)
+
+merged_data$c19_Q2_highest_2.m <- pmax(merged_data$c19yrs_cough_now_2.m, 
+                                       merged_data$c19yrs_voice_now_2.m, na.rm = TRUE)
+
+merged_data$c19_Q4_highest_2.m <- pmax(merged_data$c19yrs_smell_now_2.m, 
+                                       merged_data$c19yrs_taste_now_2.m, na.rm = TRUE)
+
+merged_data$c19_Q5_highest_2.m <- pmax(merged_data$c19yrs_chest_now_2.m,   
+                                       merged_data$c19yrs_joint_now_2.m, 
+                                       merged_data$c19yrs_muscle_now_2.m,
+                                       merged_data$c19yrs_head_now_2.m,
+                                       merged_data$c19yrs_abs_now_2.m, na.rm = TRUE)
+
+merged_data$c19_Q6_highest_2.m <- pmax(merged_data$c19yrs_conc_now_2.m,   
+                                       merged_data$c19yrs_mem_now_2.m, 
+                                       merged_data$c19yrs_plan_now_2.m, na.rm = TRUE)
+
+merged_data$c19_Q7_highest_2.m <- pmax(merged_data$c19yrs_palp_now_2.m,
+                                       merged_data$c19yrs_dizz_now_2.m, na.rm = TRUE)
+
+
+merged_data$c19_Q9_highest_2.m <- pmax(merged_data$c19yrs_anx_now_2.m, 
+                                       merged_data$c19yrs_dep_now_2.m, 
+                                       merged_data$c19yrs_ptsd_1_now_2.m,
+                                       merged_data$c19yrs_ptsd_2_now_2.m, 
+                                       merged_data$c19yrs_ptsd_3_now_2.m, na.rm = TRUE)
+
+merged_data$c19_Q1_highest_1.m <- pmax(merged_data$c19yrs_bre_now_res_1.m, 
+                                       merged_data$c19yrs_bre_now_ly_1.m, 
+                                       merged_data$c19yrs_bre_now_dre_1.m,
+                                       merged_data$c19yrs_bre_now_wal_1.m, na.rm = TRUE)
+
+merged_data$c19_Q2_highest_1.m <- pmax(merged_data$c19yrs_cough_now_1.m, 
+                                       merged_data$c19yrs_voice_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q4_highest_1.m <- pmax(merged_data$c19yrs_smell_now_1.m, 
+                                       merged_data$c19yrs_taste_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q5_highest_1.m <- pmax(merged_data$c19yrs_chest_now_1.m,   
+                                       merged_data$c19yrs_joint_now_1.m, 
+                                       merged_data$c19yrs_muscle_now_1.m,
+                                       merged_data$c19yrs_head_now_1.m,
+                                       merged_data$c19yrs_abs_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q6_highest_1.m <- pmax(merged_data$c19yrs_conc_now_1.m,   
+                                       merged_data$c19yrs_mem_now_1.m, 
+                                       merged_data$c19yrs_plan_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q7_highest_1.m <- pmax(merged_data$c19yrs_palp_now_1.m,
+                                       merged_data$c19yrs_dizz_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q9_highest_1.m <- pmax(merged_data$c19yrs_anx_now_1.m, 
+                                       merged_data$c19yrs_dep_now_1.m, 
+                                       merged_data$c19yrs_ptsd_1_now_1.m,
+                                       merged_data$c19yrs_ptsd_2_now_1.m, 
+                                       merged_data$c19yrs_ptsd_3_now_1.m, na.rm = TRUE)
+
+merged_data$c19_Q1_highest_0.m <- pmax(merged_data$c19yrs_bre_now_res_0.m, 
+                                       merged_data$c19yrs_bre_now_ly_0.m, 
+                                       merged_data$c19yrs_bre_now_dre_0.m,
+                                       merged_data$c19yrs_bre_now_wal_0.m, na.rm = TRUE)
+
+merged_data$c19_Q2_highest_0.m <- pmax(merged_data$c19yrs_cough_now_0.m, 
+                                       merged_data$c19yrs_voice_now_0.m, na.rm = TRUE)
+
+merged_data$c19_Q4_highest_0.m <- pmax(merged_data$c19yrs_smell_now_0.m, 
+                                       merged_data$c19yrs_taste_now_0.m, na.rm = TRUE)
+
+merged_data$c19_Q5_highest_0.m <- pmax(merged_data$c19yrs_chest_now_0.m,   
+                                       merged_data$c19yrs_joint_now_0.m, 
+                                       merged_data$c19yrs_muscle_now_0.m,
+                                       merged_data$c19yrs_head_now_0.m,
+                                       merged_data$c19yrs_abs_now_0.m, na.rm = TRUE)
+
+merged_data$c19_Q6_highest_0.m <- pmax(merged_data$c19yrs_conc_now_0.m,   
+                                       merged_data$c19yrs_mem_now_0.m, 
+                                       merged_data$c19yrs_plan_now_0.m, na.rm = TRUE)
+
+merged_data$c19_Q7_highest_0.m <- pmax(merged_data$c19yrs_palp_now_0.m,
+                                       merged_data$c19yrs_dizz_now_0.m, na.rm = TRUE)
+
+
+merged_data$c19_Q9_highest_0.m <- pmax(merged_data$c19yrs_anx_now_0.m, 
+                                       merged_data$c19yrs_dep_now_0.m, 
+                                       merged_data$c19yrs_ptsd_1_now_0.m,
+                                       merged_data$c19yrs_ptsd_2_now_0.m, 
+                                       merged_data$c19yrs_ptsd_3_now_0.m, na.rm = TRUE)
+
+merged_data <- merged_data %>%
+  mutate(across(c(c19_Q1_highest_0.m, c19_Q2_highest_0.m, c19_Q4_highest_0.m, 
+                  c19_Q5_highest_0.m, c19_Q6_highest_0.m, c19_Q7_highest_0.m,
+                  c19_Q9_highest_0.m, c19_Q1_highest_1.m, c19_Q2_highest_1.m, 
+                  c19_Q4_highest_1.m, c19_Q5_highest_1.m, c19_Q6_highest_1.m, 
+                  c19_Q7_highest_1.m, c19_Q9_highest_1.m, c19_Q1_highest_2.m, 
+                  c19_Q2_highest_2.m, c19_Q4_highest_2.m, c19_Q5_highest_2.m, 
+                  c19_Q6_highest_2.m, c19_Q7_highest_2.m, c19_Q9_highest_2.m, 
+                  c19yrs_fatigue_now_0.m, c19yrs_fatigue_now_1.m, c19yrs_fatigue_now_2.m,
+                  c19yrs_pem_now_0.m, c19yrs_pem_now_1.m, c19yrs_pem_now_2.m,
+                  c19yrs_sleep_now_0.m, c19yrs_sleep_now_1.m, c19yrs_sleep_now_2.m,
+                  c19yrs_commun_now_0.m, c19yrs_mob_now_0.m, c19yrs_perscar_now_0.m,
+                  c19yrs_dailyli_now_0.m, c19yrs_social_now_0.m,
+                  c19yrs_commun_now_1.m, c19yrs_mob_now_1.m, c19yrs_perscar_now_1.m,
+                  c19yrs_dailyli_now_1.m, c19yrs_social_now_1.m,
+                  c19yrs_commun_now_2.m, c19yrs_mob_now_2.m, c19yrs_perscar_now_2.m,
+                  c19yrs_dailyli_now_2.m, c19yrs_social_now_2.m), 
+                ~as.numeric(.)))
+
+merged_data <- merged_data %>%
+  mutate(C19_severity_SUM_0 = rowSums(select(., c("c19_Q1_highest_0.m",     # highest item from question 1
+                                                  "c19_Q2_highest_0.m",     # highest item from question 2
+                                                  "c19yrs_fatigue_now_0.m", # question 3
+                                                  "c19_Q4_highest_0.m",     # highest item from question 4
+                                                  "c19_Q5_highest_0.m",     # highest item from question 5
+                                                  "c19_Q6_highest_0.m",     # highest item from question 6
+                                                  "c19_Q7_highest_0.m",     # highest item from question 7
+                                                  "c19yrs_pem_now_0.m",     # question 8
+                                                  "c19_Q9_highest_0.m",     # highest item from question 9
+                                                  "c19yrs_sleep_now_0.m"    # question 10
+                                            )), 
+                                na.rm = TRUE), 
+         
+         C19_severity_SUM_1 = rowSums(select(., c("c19_Q1_highest_1.m",     # highest item from question 1
+                                                  "c19_Q2_highest_1.m",     # highest item from question 2
+                                                  "c19yrs_fatigue_now_1.m", # question 3
+                                                  "c19_Q4_highest_1.m",     # highest item from question 4
+                                                  "c19_Q5_highest_1.m",     # highest item from question 5
+                                                  "c19_Q6_highest_1.m",     # highest item from question 6
+                                                  "c19_Q7_highest_1.m",     # highest item from question 7
+                                                  "c19yrs_pem_now_1.m",     # question 8
+                                                  "c19_Q9_highest_1.m",     # highest item from question 9
+                                                  "c19yrs_sleep_now_1.m"    # question 10
+                                            )), 
+                                na.rm = TRUE),
+         
+         C19_severity_SUM_2 = rowSums(select(., c("c19_Q1_highest_2.m",     # highest item from question 1
+                                                  "c19_Q2_highest_2.m",     # highest item from question 2
+                                                  "c19yrs_fatigue_now_2.m", # question 3
+                                                  "c19_Q4_highest_2.m",     # highest item from question 4
+                                                  "c19_Q5_highest_2.m",     # highest item from question 5
+                                                  "c19_Q6_highest_2.m",     # highest item from question 6
+                                                  "c19_Q7_highest_2.m",     # highest item from question 7
+                                                  "c19yrs_pem_now_2.m",     # question 8
+                                                  "c19_Q9_highest_2.m",     # highest item from question 9
+                                                  "c19yrs_sleep_now_2.m"    # question 10
+                                            )), 
+                                na.rm = TRUE))
+
+merged_data <- merged_data %>%
+  mutate(C19_functional_SUM_0 = rowSums(select(., c("c19yrs_commun_now_0.m", 
+                                                    "c19yrs_mob_now_0.m",
+                                                    "c19yrs_perscar_now_0.m",
+                                                    "c19yrs_dailyli_now_0.m",
+                                                    "c19yrs_social_now_0.m")), 
+                                na.rm = FALSE), 
+         
+         C19_functional_SUM_1 = rowSums(select(., c("c19yrs_commun_now_1.m", 
+                                                    "c19yrs_mob_now_1.m",
+                                                    "c19yrs_perscar_now_1.m",
+                                                    "c19yrs_dailyli_now_1.m",
+                                                    "c19yrs_social_now_1.m")), 
+                                na.rm = FALSE),
+         
+         C19_functional_SUM_2 = rowSums(select(., c("c19yrs_commun_now_2.m", 
+                                                    "c19yrs_mob_now_2.m",
+                                                    "c19yrs_perscar_now_2.m",
+                                                    "c19yrs_dailyli_now_2.m",
+                                                    "c19yrs_social_now_2.m")), 
+                                na.rm = FALSE))
+
 write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_latest.csv", row.names = TRUE)
 ```
 
@@ -1206,6 +1387,71 @@ filtered_data <- filtered_data[filtered_data$Attrition == 1
     Worsened = sum(WHO_D5_pre_post_improvement > 0, na.rm = TRUE)
   ))
 
+#### C19 symptoms severity ####
+
+
+merged_data <- merged_data %>%
+  mutate(across(c(c19yrs_health_now_0.m, c19yrs_health_now_2.m), as.numeric))
+
+jmv::ttestPS(
+    data = merged_data[merged_data$Attrition == 1,],
+    pairs = list(
+        list(
+            i1="C19_severity_SUM_0",
+            i2="C19_severity_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
+  filter(!is.na(C19_severity_SUM_0) & !is.na(C19_severity_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(symptom_pre_post_improvement = C19_severity_SUM_2 - C19_severity_SUM_0)
+
+(GAD_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "Symptoms",
+    Improved = sum(symptom_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(symptom_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(symptom_pre_post_improvement > 0, na.rm = TRUE)
+  ))
+
+#### C19 function ####
+
+jmv::ttestPS(
+    data = merged_data[merged_data$Attrition == 1,],
+    pairs = list(
+        list(
+            i1="C19_functional_SUM_0",
+            i2="C19_functional_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
+  filter(!is.na(C19_functional_SUM_0) & !is.na(C19_functional_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(symptom_pre_post_improvement = C19_functional_SUM_2 - C19_functional_SUM_0)
+
+(GAD_ind_summary <- filtered_data %>%
+  summarize(
+    Measure = "Symptoms",
+    Improved = sum(symptom_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(symptom_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(symptom_pre_post_improvement > 0, na.rm = TRUE)
+  ))
 ```
 
 ```{r Oil Tank, eval = FALSE}
@@ -1250,7 +1496,7 @@ filtered_data <- filtered_data %>%
   ))
 
 (filtered_data %>%
-  group_by(Session) %>%
+  group_by(Session) %>% # and/or ID
   summarize(
     Measure = "Oil tank",
     Improved = sum(Tank_pre_post_improvement > 0, na.rm = TRUE),
