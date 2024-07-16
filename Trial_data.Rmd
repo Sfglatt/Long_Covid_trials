@@ -1111,7 +1111,7 @@ merged_data <- merged_data %>%
                                                   "c19_Q9_highest_0.m",     # highest item from question 9
                                                   "c19yrs_sleep_now_0.m"    # question 10
                                             )), 
-                                na.rm = TRUE), 
+                                na.rm = FALSE), 
          
          C19_severity_SUM_1 = rowSums(select(., c("c19_Q1_highest_1.m",     # highest item from question 1
                                                   "c19_Q2_highest_1.m",     # highest item from question 2
@@ -1124,7 +1124,7 @@ merged_data <- merged_data %>%
                                                   "c19_Q9_highest_1.m",     # highest item from question 9
                                                   "c19yrs_sleep_now_1.m"    # question 10
                                             )), 
-                                na.rm = TRUE),
+                                na.rm = FALSE),
          
          C19_severity_SUM_2 = rowSums(select(., c("c19_Q1_highest_2.m",     # highest item from question 1
                                                   "c19_Q2_highest_2.m",     # highest item from question 2
@@ -1137,7 +1137,7 @@ merged_data <- merged_data %>%
                                                   "c19_Q9_highest_2.m",     # highest item from question 9
                                                   "c19yrs_sleep_now_2.m"    # question 10
                                             )), 
-                                na.rm = TRUE))
+                                na.rm = FALSE))
 
 merged_data <- merged_data %>%
   mutate(C19_functional_SUM_0 = rowSums(select(., c("c19yrs_commun_now_0.m", 
@@ -1161,7 +1161,7 @@ merged_data <- merged_data %>%
                                                     "c19yrs_social_now_2.m")), 
                                 na.rm = FALSE))
 
-write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_latest.csv", row.names = TRUE)
+write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.9.csv", row.names = TRUE)
 ```
 
 ```{r Descriptives, eval = FALSE}
@@ -1177,6 +1177,9 @@ descriptives
 ```
 
 ```{r Paired comparison, eval = FALSE}
+
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.9.csv")
+
 #### QOL ####
 # use imputed dataset
 
@@ -1428,8 +1431,39 @@ jmv::ttestPS(
     data = merged_data[merged_data$Attrition == 1,],
     pairs = list(
         list(
-            i1="C19_functional_SUM_0",
-            i2="C19_functional_SUM_2")),
+            i1="C19_severity_SUM_1",
+            i2="C19_severity_SUM_2")),
+    wilcoxon = TRUE,
+    norm = TRUE,
+    qq = TRUE,
+    meanDiff = TRUE,
+    effectSize = TRUE,
+    ciES = TRUE,
+    desc = TRUE,
+    plots = TRUE)
+
+filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
+  filter(!is.na(C19_functional_SUM_0) & !is.na(C19_functional_SUM_2))
+
+filtered_data <- filtered_data %>%
+  mutate(symptom_pre_post_improvement = C19_functional_SUM_2 - C19_functional_SUM_0)
+
+(filtered_data %>%
+  summarize(
+    Measure = "Symptoms",
+    Improved = sum(symptom_pre_post_improvement < 0, na.rm = TRUE),
+    No_Change = sum(symptom_pre_post_improvement == 0, na.rm = TRUE),
+    Worsened = sum(symptom_pre_post_improvement > 0, na.rm = TRUE)
+  ))
+
+#### C19 health ####
+
+jmv::ttestPS(
+    data = merged_data[merged_data$Attrition == 1,],
+    pairs = list(
+        list(
+            i1="c19yrs_health_now_0.m",
+            i2="c19yrs_health_now_2.m")),
     wilcoxon = TRUE,
     norm = TRUE,
     qq = TRUE,
