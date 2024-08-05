@@ -314,9 +314,9 @@ for (variable_of_interest in numeric_cols_2) {
 power.rmcorr <- function(k, N, effectsizer, sig) {
     pwr.r.test(n = ((N)*(k-1))+1, r = effectsizer, sig.level = sig) } 
 
-power.rmcorr(19.5, # effective n of 77
+power.rmcorr(19, # effective n of 77
              4,    # excluding P20
-             .35,  # random
+             .33,  # random
              .05)  # sig.
 
 # correlations
@@ -324,8 +324,8 @@ rmcorr <- rmcorr_mat(PID,
                      variables = c("qol", "hopefulness", "health", "restedness",
                                    "falling_asleep",  "staying_asleep", "waking_early",
                                    "isolation", "busy", "anxiety", "depression",
-                                   "lc_sx_1", "lc_sx_2", "lc_sx_3", "lc_sx_4", "lc_sx_5", "lc_sx_6",
-                                   "lc_sx_7", "lc_sx_8", 
+                                   "lc_sx_1", "lc_sx_2", "lc_sx_3", #"lc_sx_4", 
+                                   "lc_sx_5", "lc_sx_6", "lc_sx_7", "lc_sx_8", 
                                    "coping_1", "coping_2", "coping_3", "coping_4", "coping_5", 
                                    "functioning", "energy"), 
                      subset(EMA_dat_1_sorted, PID != 20), 
@@ -333,7 +333,7 @@ rmcorr <- rmcorr_mat(PID,
 
 rmcorr_summary <- rmcorr$summary
 
-write.csv(rmcorr_summary, "Daily_correlations.csv")
+write.csv(rmcorr_summary, "Daily_correlations_2.csv")
 
 # p.vals <- rmcorr$summary$p.vals
 # (p.vals.bonferroni <- p.adjust(p.vals, method = "bonferroni", n = length(p.vals)))

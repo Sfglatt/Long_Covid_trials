@@ -463,7 +463,7 @@ merged_data <- merged_data %>%
 # There are much more efficient ways to write this code. I'm spelling everything out deliberately for ease of verification.
 
 # If you don't have the above data imported, uncomment and run the below:
-# merged_data <- read.csv("Created_datasets/Created_datasets/Cohorts_1_2_3_data_latest.csv")
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
 # head(merged_data)
 
 #### AIM / IAM / FIM ####
@@ -504,8 +504,6 @@ merged_data$IAM_overall_AVERAGE_2 <- rowMeans(merged_data[, c("IAM_1a_2.m", "IAM
                                               na.rm = FALSE)
 merged_data$FIM_overall_AVERAGE_2 <- rowMeans(merged_data[, c("FIM_1a_2.m", "FIM_2a_2.m", "FIM_3a_2.m", "FIM_4a_2.m")], 
                                               na.rm = FALSE)
-
-
 
 #### FSCQ ####
 
@@ -1176,29 +1174,113 @@ descriptives
 # write.csv(descriptives, "Created_datasets/Long_Covid_summary_output_6.6.csv", row.names = TRUE)
 ```
 
-```{r Paired comparison, eval = FALSE}
+```{r pre_to_mid_to_post comparisons}
+# pre-treatment to post-treatment
+pre_post <- jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "C19_functional_SUM_0", i2 = "C19_functional_SUM_2"),
+    list(i1 = "C19_severity_SUM_0", i2 = "C19_severity_SUM_2"),
+    list(i1 = "WHO_D1_SUM_0", i2 = "WHO_D1_SUM_2"),
+    list(i1 = "WHO_D2_SUM_0", i2 = "WHO_D2_SUM_2"),
+    list(i1 = "WHO_D3_SUM_0", i2 = "WHO_D3_SUM_2"),
+    list(i1 = "WHO_D4_SUM_0", i2 = "WHO_D4_SUM_2"),
+    list(i1 = "WHO_D5_SUM_0", i2 = "WHO_D5_SUM_2"),
+    list(i1 = "WHO_D5a_SUM_0", i2 = "WHO_D5a_SUM_2"),
+    list(i1 = "WHO_D5b_SUM_0", i2 = "WHO_D5b_SUM_2"),
+    list(i1 = "WHO_D6_SUM_0", i2 = "WHO_D6_SUM_2"),
+    list(i1 = "MOCS_SUM_0", i2 = "MOCS_SUM_2"),
+    list(i1 = "QPR_SUM_0", i2 = "QPR_SUM_2"),
+    list(i1 = "GAD_SUM_0", i2 = "GAD_SUM_2"),
+    list(i1 = "PHQ_SUM_0", i2 = "PHQ_SUM_2"),
+    list(i1 = "QOL_SUM_0", i2 = "QOL_SUM_2"),
+    list(i1 = "FSCQ_total_AVERAGE_0", i2 = "FSCQ_total_AVERAGE_2"),
+    list(i1 = "FSCQ_sim_AVERAGE_0", i2 = "FSCQ_sim_AVERAGE_2"),
+    list(i1 = "FSCQ_Viv_AVERAGE_0", i2 = "FSCQ_Viv_AVERAGE_2"),
+    list(i1 = "FSCQ_Pos_AVERAGE_0", i2 = "FSCQ_Pos_AVERAGE_2"),
+    list(i1 = "c19yrs_health_now_0.m", i2 = "c19yrs_health_now_2.m")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
 
-merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.9.csv")
+# pre-treatment to mid-treatment
+pre_mid <- jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1="QOL_SUM_0", i2="QOL_SUM_1"),
+    list(i1="FSCQ_Viv_AVERAGE_0", i2="FSCQ_Viv_AVERAGE_1"),
+    list(i1="FSCQ_sim_AVERAGE_0", i2="FSCQ_sim_AVERAGE_1"),
+    list(i1="FSCQ_Pos_AVERAGE_0", i2="FSCQ_Pos_AVERAGE_1"),
+    list(i1="FSCQ_total_AVERAGE_0", i2="FSCQ_total_AVERAGE_1"),
+    list(i1="QOL_SUM_0", i2="QOL_SUM_1"),
+    list(i1="PHQ_SUM_0", i2="PHQ_SUM_1"),
+    list(i1="GAD_SUM_0", i2="GAD_SUM_1"),
+    list(i1="WHO_D1_SUM_0", i2="WHO_D1_SUM_1"),
+    list(i1="WHO_D2_SUM_0", i2="WHO_D2_SUM_1"),
+    list(i1="WHO_D3_SUM_0", i2="WHO_D3_SUM_1"),
+    list(i1="WHO_D4_SUM_0", i2="WHO_D4_SUM_1"),
+    list(i1="WHO_D5a_SUM_0", i2="WHO_D5a_SUM_1"),
+    list(i1="WHO_D5b_SUM_0", i2="WHO_D5b_SUM_1"),
+    list(i1="WHO_D6_SUM_0", i2="WHO_D6_SUM_1"),
+    list(i1="C19_severity_SUM_0", i2="C19_severity_SUM_1"),
+    list(i1="C19_functional_SUM_0", i2="C19_functional_SUM_1"),
+    list(i1="QPR_SUM_0", i2="QPR_SUM_1"),
+    list(i1="MOCS_SUM_0", i2="MOCS_SUM_1"), 
+    list(i1="c19yrs_health_now_0.m", i2="c19yrs_health_now_1.m")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+
+# mid-treatment to post-treatment
+mid_post <- jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "C19_functional_SUM_1", i2 = "C19_functional_SUM_2"),
+    list(i1 = "C19_severity_SUM_1", i2 = "C19_severity_SUM_2"),
+    list(i1 = "WHO_D1_SUM_1", i2 = "WHO_D1_SUM_2"),
+    list(i1 = "WHO_D2_SUM_1", i2 = "WHO_D2_SUM_2"),
+    list(i1 = "WHO_D3_SUM_1", i2 = "WHO_D3_SUM_2"),
+    list(i1 = "WHO_D4_SUM_1", i2 = "WHO_D4_SUM_2"),
+    list(i1 = "WHO_D5_SUM_1", i2 = "WHO_D5_SUM_2"),
+    list(i1 = "WHO_D5a_SUM_1", i2 = "WHO_D5a_SUM_2"),
+    list(i1 = "WHO_D5b_SUM_1", i2 = "WHO_D5b_SUM_2"),
+    list(i1 = "WHO_D6_SUM_1", i2 = "WHO_D6_SUM_2"),
+    list(i1 = "MOCS_SUM_1", i2 = "MOCS_SUM_2"),
+    list(i1 = "QPR_SUM_1", i2 = "QPR_SUM_2"),
+    list(i1 = "GAD_SUM_1", i2 = "GAD_SUM_2"),
+    list(i1 = "PHQ_SUM_1", i2 = "PHQ_SUM_2"),
+    list(i1 = "QOL_SUM_1", i2 = "QOL_SUM_2"),
+    list(i1 = "FSCQ_total_AVERAGE_1", i2 = "FSCQ_total_AVERAGE_2"),
+    list(i1 = "FSCQ_sim_AVERAGE_1", i2 = "FSCQ_sim_AVERAGE_2"),
+    list(i1 = "FSCQ_Viv_AVERAGE_1", i2 = "FSCQ_Viv_AVERAGE_2"),
+    list(i1 = "FSCQ_Pos_AVERAGE_1", i2 = "FSCQ_Pos_AVERAGE_2"),
+    list(i1 = "c19yrs_health_now_1.m", i2 = "c19yrs_health_now_2.m")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+```{r Individual improvement, eval = FALSE}
 
 #### QOL ####
-# use imputed dataset
 
-jmv::ttestPS(
-    data = merged_data,
-    pairs = list(
-        list(
-            i1="QOL_SUM_0",
-            i2="QOL_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
-# individual improvement
 filtered_data <- merged_data_imputed %>%
   filter(!is.na(QOL_SUM_0) & !is.na(QOL_SUM_2))
 
@@ -1213,42 +1295,8 @@ filtered_data <- filtered_data %>%
     Worsened = sum(QOL_pre_post_improvement < 0, na.rm = TRUE)
   ))
 
-
-#### FSCQ ####
-
-jmv::ttestPS(
-    data = merged_data,
-    pairs = list(
-        list(
-            i1="FSCQ_Viv_AVERAGE_0",
-            i2="FSCQ_Viv_AVERAGE_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
 #### PHQ ####
 
-jmv::ttestPS(
-    data = merged_data,
-    pairs = list(
-        list(
-            i1="PHQ_SUM_0",
-            i2="PHQ_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
-# individual improvement
 filtered_data <- merged_data %>%
   filter(!is.na(PHQ_SUM_0) & !is.na(PHQ_SUM_2))
 
@@ -1264,22 +1312,6 @@ filtered_data <- filtered_data %>%
   ))
 
 #### GAD-7 ####
-# make sure to use the imputed dataset
-
-jmv::ttestPS(
-    data = merged_data,
-    pairs = list(
-        list(
-            i1="GAD_SUM_0",
-            i2="GAD_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
 
 filtered_data <- merged_data_imputed %>%
   filter(!is.na(GAD_SUM_0) & !is.na(GAD_SUM_2))
@@ -1295,41 +1327,8 @@ filtered_data <- filtered_data %>%
     Worsened = sum(GAD_pre_post_improvement > 0, na.rm = TRUE)
   ))
 
-#### MOCS ####
-
-jmv::ttestPS(
-    data = merged_data,
-    pairs = list(
-        list(
-            i1="MOCS_SUM_0",
-            i2="MOCS_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
 #### QPR ####
 
-jmv::ttestPS(
-    data = merged_data[merged_data$Cohort == 3,],
-    pairs = list(
-        list(
-            i1="QPR_SUM_0",
-            i2="QPR_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
-# individual improvement
 filtered_data <- merged_data[merged_data$Cohort ==3,] %>%
   filter(!is.na(QPR_SUM_0) & !is.na(QPR_SUM_2))
 
@@ -1346,29 +1345,7 @@ filtered_data <- filtered_data %>%
 bind_rows(PHQ_ind_summary, GAD_ind_summary, QOL_ind_summary)
 
 #### WHODAS ####
-jmv::ttestPS(
-    data = merged_data[merged_data$Attrition == 1 
-                       # & merged_data$ID != "P01" 
-                       # & merged_data$ID != "P06"
-                       # & merged_data$ID != "P07"
-                       # & merged_data$ID != "P08"
-                       # & merged_data$ID != "P022"
-                       # Need to exclude when looking at full domain 5; 5b applied at baseline and not at post-treatment.
-                       ,],
-    pairs = list(
-        list(
-            i1="WHO_D1_SUM_0",
-            i2="WHO_D1_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
 
-# individual improvement
 filtered_data <- merged_data %>%
   filter(!is.na(WHO_D5_SUM_0) & !is.na(WHO_D5_SUM_2))
 
@@ -1392,24 +1369,8 @@ filtered_data <- filtered_data[filtered_data$Attrition == 1
 
 #### C19 symptoms severity ####
 
-
 merged_data <- merged_data %>%
   mutate(across(c(c19yrs_health_now_0.m, c19yrs_health_now_2.m), as.numeric))
-
-jmv::ttestPS(
-    data = merged_data[merged_data$Attrition == 1,],
-    pairs = list(
-        list(
-            i1="C19_severity_SUM_0",
-            i2="C19_severity_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
 
 filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
   filter(!is.na(C19_severity_SUM_0) & !is.na(C19_severity_SUM_2))
@@ -1427,21 +1388,6 @@ filtered_data <- filtered_data %>%
 
 #### C19 function ####
 
-jmv::ttestPS(
-    data = merged_data[merged_data$Attrition == 1,],
-    pairs = list(
-        list(
-            i1="C19_severity_SUM_1",
-            i2="C19_severity_SUM_2")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
-
 filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
   filter(!is.na(C19_functional_SUM_0) & !is.na(C19_functional_SUM_2))
 
@@ -1457,21 +1403,6 @@ filtered_data <- filtered_data %>%
   ))
 
 #### C19 health ####
-
-jmv::ttestPS(
-    data = merged_data[merged_data$Attrition == 1,],
-    pairs = list(
-        list(
-            i1="c19yrs_health_now_0.m",
-            i2="c19yrs_health_now_2.m")),
-    wilcoxon = TRUE,
-    norm = TRUE,
-    qq = TRUE,
-    meanDiff = TRUE,
-    effectSize = TRUE,
-    ciES = TRUE,
-    desc = TRUE,
-    plots = TRUE)
 
 filtered_data <- merged_data[merged_data$Attrition == 1,] %>%
   filter(!is.na(C19_functional_SUM_0) & !is.na(C19_functional_SUM_2))
@@ -1539,3 +1470,12 @@ filtered_data <- filtered_data %>%
   ))
 
 ```
+
+```{r Missingness}
+#### Patterns of missingness ####
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
+
+missingness <- merged_data[, c("WHODAS_d4_5_0.m", "QOL_Q11_0.m", "QOL_Q4_0.m", "GAD.7_7_0.m")]
+mcar_test(missingness)
+```
+
