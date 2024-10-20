@@ -1,0 +1,131 @@
+---
+title: "03_CDC_LC_data"
+author: "Sglatt"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r packages}
+if (!require("ggplot2")) {install.packages("ggplot2"); require("ggplot2")}
+```
+
+# Import data
+```{r Data}
+# Data downloaded from the Household Pulse Survey from the National Center of Health Statistics (NCHS), CDC
+# https://www.cdc.gov/nchs/covid19/pulse/long-covid.htm
+# Last updated: October 4, 2024
+
+CDC_dat <- read.csv("Raw_data/Post-COVID_Conditions_20241018.csv")
+view(CDC_dat)
+```
+
+# Filter
+```{r Filter data}
+# filter by indicators to current long covid
+
+current_indicators <- c("Currently experiencing long COVID, as a percentage of all adults",
+                        "Currently experiencing long COVID, as a percentage of adults who ever had COVID"
+                      #  "Any activity limitations from long COVID, as a percentage of adults who currently have long COVID", 
+                      #  "Significant activity limitations from long COVID, as a percentage of adults who currently have long COVID", 
+                      #  "Any activity limitations from long COVID, as a percentage of all adults", 
+                      #  "Significant activity limitations from long COVID, as a percentage of all adults"
+                      )
+
+
+filtered_curr_long_covid <- CDC_dat[CDC_dat$Indicator %in% current_indicators, ]
+
+table(filtered_curr_long_covid$Time.Period.Label)
+
+filtered_curr_long_covid$Time.Period.Label <- factor(filtered_curr_long_covid$Time.Period.Label, 
+                                                     levels = unique(filtered_curr_long_covid$Time.Period.Label))
+```
+
+# Plot
+```{r Plots}
+#### prep for plots ####
+
+# set colors for plots
+
+colors <- c("Currently experiencing long COVID, as a percentage of all adults" = "#0066FF",
+            "Currently experiencing long COVID, as a percentage of adults who ever had COVID" = "#339900")
+
+#### National estimate ####
+
+filtered_curr_long_covid_group <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "National Estimate", ]
+any(is.na(filtered_curr_long_covid_group$Value)) 
+
+pdf("03_Output/LC_national_estimate.pdf", width = 15, height = 12)
+
+ggplot(filtered_curr_long_covid_group, aes(x = Time.Period.Label, y = Value, color = Indicator)) +
+  geom_errorbar(aes(ymin = LowCI, ymax = HighCI), width = 0.2, position = position_dodge(0.9)) +
+  geom_point(position = position_dodge(0.9)) +
+  geom_text(aes(label = round(Value, 2)), vjust = -0.5, hjust = 0.5, size = 3, position = position_dodge(0.9)) +  
+  labs(x = "Time Period", y = "Percentage", color = "Indicator") +
+  ggtitle("Percent and 95% CIs over time National Estimate") +
+  theme_minimal() +
+  theme(text = element_text(size = 14),  
+        axis.text = element_text(size = 14),  
+        axis.title = element_text(size = 14),  
+        legend.text = element_text(size = 12)) +  
+  coord_flip() +
+  scale_color_manual(values = colors)
+
+dev.off()
+
+#### By demo characteristics ####
+filtered_long_covid_sex <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Sex", ]
+filtered_long_covid_gen <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Gender identity", ]
+filtered_long_covid_age <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Age", ]
+filtered_long_covid_state <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By State", ]
+filtered_long_covid_educate <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Education", ]
+filtered_long_covid_disable <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Disability status", ]
+filtered_long_covid_ethnicity <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Race/Hispanic ethnicity", ]
+filtered_long_covid_sex_orient <- filtered_curr_long_covid[filtered_curr_long_covid$Group == "By Sexual orientation", ]
+
+(sex_subgroups <- names(table(filtered_long_covid_sex$Subgroup)))
+(gender_subgroups <- names(table(filtered_long_covid_gen$Subgroup)))
+(age_subgroups <- names(table(filtered_long_covid_age$Subgroup)))
+(state_subgroups <- names(table(filtered_long_covid_state$Subgroup)))
+(educate_subgroups <- names(table(filtered_long_covid_educate$Subgroup)))
+(disability_subgroups <- names(table(filtered_long_covid_disable$Subgroup)))
+(ethnicity_subgroups <- names(table(filtered_long_covid_ethnicity$Subgroup)))
+(sex_orient_subgroups <- names(table(filtered_long_covid_sex_orient$Subgroup)))
+
+#### Plot for each subgroup ####
+
+create_plots <- function(subgroup_data, 
+                         subgroup_name, 
+                         facet = 2, 
+                         width = 15, 
+                         height = 10) {
+  
+  plot <- ggplot(subgroup_data, aes(x = Time.Period.Label, y = Value, color = Indicator)) +
+    geom_errorbar(aes(ymin = LowCI, ymax = HighCI), width = 0.2, position = position_dodge(0.9)) +
+    geom_point(position = position_dodge(0.9)) +
+    geom_text(aes(label = round(Value, 2)), vjust = -0.5, hjust = 0.5, size = 2.4, position = position_dodge(0.9)) +
+    labs(x = "Time period", y = "Percentage", color = "Indicator") +
+    ggtitle(paste("% and 95% CIs over time for", subgroup_name)) +
+    theme_minimal() +
+    theme(text = element_text(size = 8),  
+          axis.text = element_text(size = 8),  
+          axis.title = element_text(size = 8),  
+          legend.text = element_text(size = 8)) + 
+    coord_flip() +
+    scale_color_manual(values = colors) +
+    facet_wrap(~Subgroup, ncol = facet)  
+  
+  pdf(paste0("03_Output/LC_by_", tolower(subgroup_name), ".pdf"), width = width, height = height)
+  print(plot)
+  dev.off()
+}
+
+create_plots(filtered_long_covid_sex, "Sex", facet = 2, width = 13, height = 12)
+create_plots(filtered_long_covid_gen, "Gender_identity", facet = 3, width = 24, height = 12)
+create_plots(filtered_long_covid_age, "Age", facet = 7, width = 40, height = 12)
+create_plots(filtered_long_covid_ethnicity, "Ethnicity", facet = 5, width = 35, height = 12)
+create_plots(filtered_long_covid_disable, "Disability_status", facet = 2, width = 13, height = 12)
+create_plots(filtered_long_covid_sex_orient, "sexual_orientation", facet = 3, width = 18, height = 12)
+create_plots(filtered_long_covid_educate, "Education", facet = 4, width = 16, height = 12)
+create_plots(filtered_long_covid_state, "State", facet = 5, width = 25, height = 60)
+```
+

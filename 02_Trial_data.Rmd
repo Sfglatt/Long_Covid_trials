@@ -444,13 +444,14 @@ write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.8_raw.csv")
 ```{r Demographics}
 colnames(merged_data)
 
-subset_data <- merged_data %>%
-  filter(Attrition == 1)
+table(merged_data[merged_data$Attrition == 1,]$ethnicity_0.m)
+table(merged_data[merged_data$Attrition == 1,]$birth_sex_0.m)
+table(merged_data[merged_data$Attrition == 1,]$employment_0.m)
+table(merged_data[merged_data$Attrition == 1,]$highest_level_of_ed_0.m)
+table(merged_data[merged_data$Attrition == 1,]$ethnicity_0.m)
+summary(merged_data[merged_data$Attrition == 1,]$age_0.m)
+sd(merged_data[merged_data$Attrition == 1,]$age_0.m)
 
-table(subset_data$birth_sex_0.m)
-table(subset_data$race_0.m)
-summary(subset_data$age_0.m)
-sd(subset_data$age_0.m)
 # etc.
 ```
 
@@ -1277,8 +1278,8 @@ mid_post <- jmv::ttestPS(
   desc = TRUE
 )
 ```
-```{r Individual improvement, eval = FALSE}
 
+```{r Individual improvement, eval = FALSE}
 #### QOL ####
 
 filtered_data <- merged_data_imputed %>%
@@ -1479,3 +1480,49 @@ missingness <- merged_data[, c("WHODAS_d4_5_0.m", "QOL_Q11_0.m", "QOL_Q4_0.m", "
 mcar_test(missingness)
 ```
 
+```{r Attendance descriptives}
+# Filter
+attend_data <- merged_data %>%
+  filter(Attrition == 1)
+
+# How many attended 70% 
+table(attend_data$ID, attend_data$Total_both_mod)
+table(attend_data$ID, attend_data$Total_mod_1)
+table(attend_data$ID, attend_data$Total_mod_2)
+
+# Average attendance
+summary(attend_data$Total_both_mod)
+sd(attend_data$Total_both_mod)
+```
+
+# SBQR descriptives 10/16
+```{r sbqr descriptives}
+df <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
+colnames(df)
+
+df <- df[df$Attrition == 1, ]
+
+table(df$SBQR_total_0)
+table(is.na(df$SBQR_total_0))
+df[is.na(df$SBQR_total_0), ]
+table(df$SBQR_total_1)
+table(df$SBQR_total_2)
+
+not_equal <- df[df$SBQR_total_0 != df$SBQR_total_2, ]
+changed_data <- df[df$SBQR_total_0 != df$SBQR_total_2, c("SBQR_total_0", "SBQR_total_2")]
+
+
+table(df$SBQ.R_Q2_0.m)
+table(df$SBQ.R_Q2_1.m)
+table(df$SBQ.R_Q2_2.m)
+
+not_equal <- df[df$SBQ.R_Q2_0.m != df$SBQ.R_Q2_2.m, ]
+changed_data <- df[df$SBQ.R_Q2_0.m != df$SBQ.R_Q2_2.m, c("SBQ.R_Q2_0.m", "SBQ.R_Q2_2.m")]
+
+table(df$SBQ.R_Q4_0.m)
+table(df$SBQ.R_Q4_1.m)
+table(df$SBQ.R_Q4_2.m)
+
+not_equal <- df[df$SBQ.R_Q4_0.m != df$SBQ.R_Q4_2.m, ]
+changed_data <- df[df$SBQ.R_Q4_0.m != df$SBQ.R_Q4_2.m, c("SBQ.R_Q4_0.m", "SBQ.R_Q4_2.m")]
+```
