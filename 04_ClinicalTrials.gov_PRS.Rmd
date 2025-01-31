@@ -1,0 +1,302 @@
+---
+title: "04_ClinicalTrials.gov_PRS"
+author: "Sglatt"
+output: html_document
+date: "2025-01-31"
+---
+
+# ClinicalTrials.gov Protocol Registration and Results System
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
+if (!require("jmv")) {install.packages("jmv"); require("jmv")}
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
+```
+
+```{r import data}
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv") 
+# dataset created (+ the details) in script "02_Trial_data"
+```
+
+## Results - Baseline
+```{r baseline outcomes}
+merged_data[merged_data$ID != "P17", ] %>% 
+  summarise(
+    across(c(C19_functional_SUM_0, 
+             C19_severity_SUM_0, 
+             c19yrs_health_now_0.m,
+                     
+             WHO_D1_SUM_0,  
+             WHO_D2_SUM_0, 
+             WHO_D3_SUM_0, 
+             WHO_D4_SUM_0, 
+             WHO_D5a_SUM_0, 
+             WHO_D6_SUM_0, 
+                     
+             SBQR_total_0, 
+                     
+             MOCS_SUM_0, 
+                     
+             FSCQ_total_AVERAGE_0, 
+             FSCQ_sim_AVERAGE_0, 
+             FSCQ_Viv_AVERAGE_0,  
+             FSCQ_Pos_AVERAGE_0, 
+                     
+             PHQ_SUM_0, 
+                     
+             GAD_SUM_0, 
+                     
+             QOL_SUM_0), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+```
+
+## Results - Outcome Measures
+
+# 1. Primary Outcome
+```{r post covid 19 function}
+merged_data[merged_data$Attrition == 1, ] %>%
+  summarise(across(c(C19_functional_SUM_0, C19_functional_SUM_1, C19_functional_SUM_2, 
+                     C19_severity_SUM_0, C19_severity_SUM_1, C19_severity_SUM_2, 
+                     c19yrs_health_now_0.m, c19yrs_health_now_1.m, c19yrs_health_now_2.m), 
+                   list(Mean = ~mean(. , na.rm = TRUE),
+                        SD = ~sd(. , na.rm = TRUE),
+                        N = ~sum(!is.na(.)))))
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "C19_functional_SUM_0", i2 = "C19_functional_SUM_2"),
+    list(i1 = "C19_severity_SUM_0", i2 = "C19_severity_SUM_2"),
+    list(i1 = "c19yrs_health_now_0.m", i2 = "c19yrs_health_now_2.m")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 2. Secondary Outcome
+```{r whodas}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(WHO_D1_SUM_0, WHO_D1_SUM_1, WHO_D1_SUM_2, 
+             WHO_D2_SUM_0, WHO_D2_SUM_1, WHO_D2_SUM_2, 
+             WHO_D3_SUM_0, WHO_D3_SUM_1, WHO_D3_SUM_2, 
+             WHO_D4_SUM_0, WHO_D4_SUM_1, WHO_D4_SUM_2, 
+             WHO_D5a_SUM_0, WHO_D5a_SUM_1, WHO_D5a_SUM_2, 
+             WHO_D5b_SUM_0, WHO_D5b_SUM_1, WHO_D5b_SUM_2,
+             WHO_D6_SUM_0, WHO_D6_SUM_1, WHO_D6_SUM_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "WHO_D1_SUM_0", i2 = "WHO_D1_SUM_2"),
+    list(i1 = "WHO_D2_SUM_0", i2 = "WHO_D2_SUM_2"),
+    list(i1 = "WHO_D3_SUM_0", i2 = "WHO_D3_SUM_2"),
+    list(i1 = "WHO_D4_SUM_0", i2 = "WHO_D4_SUM_2"),
+    list(i1 = "WHO_D5a_SUM_0", i2 = "WHO_D5a_SUM_2"),
+    list(i1 = "WHO_D6_SUM_0", i2 = "WHO_D6_SUM_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 3. Secondary Outcome
+```{r sbqr}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(SBQR_total_0, SBQR_total_1, SBQR_total_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "SBQR_total_0", i2 = "SBQR_total_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 4. Secondary Outcome
+```{r resilience}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(MOCS_SUM_0, MOCS_SUM_1, MOCS_SUM_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "MOCS_SUM_0", i2 = "MOCS_SUM_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 5. Secondary Outcome
+```{r identity concerns}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(FSCQ_total_AVERAGE_0, FSCQ_total_AVERAGE_1, FSCQ_total_AVERAGE_2, 
+             FSCQ_sim_AVERAGE_0, FSCQ_sim_AVERAGE_1, FSCQ_sim_AVERAGE_2, 
+             FSCQ_Viv_AVERAGE_0, FSCQ_Viv_AVERAGE_1, FSCQ_Viv_AVERAGE_2, 
+             FSCQ_Pos_AVERAGE_0, FSCQ_Pos_AVERAGE_1, FSCQ_Pos_AVERAGE_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "FSCQ_total_AVERAGE_0", i2 = "FSCQ_total_AVERAGE_2"),
+    list(i1 = "FSCQ_sim_AVERAGE_0", i2 = "FSCQ_sim_AVERAGE_2"),
+    list(i1 = "FSCQ_Viv_AVERAGE_0", i2 = "FSCQ_Viv_AVERAGE_2"),
+    list(i1 = "FSCQ_Pos_AVERAGE_0", i2 = "FSCQ_Pos_AVERAGE_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 6. Secondary Outcome
+```{r depressive severity}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(PHQ_SUM_0, PHQ_SUM_1, PHQ_SUM_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "PHQ_SUM_0", i2 = "PHQ_SUM_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 7. Secondary Outcome
+```{r anxiety}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(GAD_SUM_0, GAD_SUM_1, GAD_SUM_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "GAD_SUM_0", i2 = "GAD_SUM_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+
+# 8. Secondary Outcome
+```{r anxiety}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(QOL_SUM_0, QOL_SUM_1, QOL_SUM_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "QOL_SUM_0", i2 = "QOL_SUM_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
