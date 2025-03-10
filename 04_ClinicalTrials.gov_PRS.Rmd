@@ -13,11 +13,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r Packages}
 if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}
 if (!require("jmv")) {install.packages("jmv"); require("jmv")}
+if (!require("lme")) {install.packages("lmer"); require("lme")}
 if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 ```
 
 ```{r import data}
-merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv") 
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_3.10.25.csv") 
 # dataset created (+ the details) in script "02_Trial_data"
 ```
 
@@ -74,7 +75,7 @@ merged_data[merged_data$Attrition == 1, ] %>%
 jmv::ttestPS(
   data = merged_data[merged_data$Attrition == 1,],
   pairs = list(
-    list(i1 = "C19_functional_SUM_0", i2 = "C19_functional_SUM_2"),
+    list(i1 = "C19_functional_SUM_0", i2 = "C19_functional_SUM_0"),
     list(i1 = "C19_severity_SUM_0", i2 = "C19_severity_SUM_2"),
     list(i1 = "c19yrs_health_now_0.m", i2 = "c19yrs_health_now_2.m")
   ),
@@ -86,6 +87,9 @@ jmv::ttestPS(
   ciES = TRUE,
   desc = TRUE
 )
+
+summary(m <- lmer(C19_functional_SUM_2 ~ C19_functional_SUM_0 + (1 | PID), merged_data[merged_data$Attrition == 1,]))
+
 ```
 
 # 2. Secondary Outcome
@@ -300,3 +304,62 @@ jmv::ttestPS(
   desc = TRUE
 )
 ```
+
+# 9. Feasibility/Acceptability/Appropriateness
+```{r AIM}
+merged_data[merged_data$Attrition == 1,] %>%
+  summarise(
+    across(c(AIM_AVERAGE_0, AIM_overall_AVERAGE_2, 
+             IAM_AVERAGE_0, IAM_overall_AVERAGE_2, 
+             FIM_AVERAGE_0, FIM_overall_AVERAGE_2), 
+           list(mean = ~mean(. , na.rm = TRUE), 
+                sd = ~sd(. , na.rm = TRUE),
+                n = ~sum(!is.na(.))))) %>%
+  pivot_longer(cols = everything(), 
+               names_to = c("var", "stat"), 
+               names_pattern = "(.*)_(mean|sd|n)") %>%
+  pivot_wider(names_from = stat, values_from = value)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "AIM_AVERAGE_0", i2 = "AIM_overall_AVERAGE_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "IAM_AVERAGE_0", i2 = "IAM_overall_AVERAGE_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+
+jmv::ttestPS(
+  data = merged_data[merged_data$Attrition == 1,],
+  pairs = list(
+    list(i1 = "FIM_AVERAGE_0", i2 = "FIM_overall_AVERAGE_2")
+  ),
+  wilcoxon = TRUE,
+  norm = TRUE,
+  meanDiff = TRUE,
+  ci = TRUE,
+  effectSize = TRUE,
+  ciES = TRUE,
+  desc = TRUE
+)
+```
+

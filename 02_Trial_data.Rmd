@@ -1,5 +1,5 @@
 ---
-title: "Trial data"
+title: "02_Trial data"
 output: html_notebook
 ---
 
@@ -158,7 +158,7 @@ c2_baseline <- c2_baseline %>%
 
 ```{r Merge cohort 1 and 2 baseline}
 # Look at variable discrepancies
-setdiff(colnames(c1_baseline_2), colnames(c2_baseline))
+setdiff(colnames(c1_baseline), colnames(c2_baseline))
 setdiff(colnames(c2_baseline), colnames(c1_baseline))
 
 # Remove cohort 1 wonky demo information:
@@ -442,29 +442,32 @@ write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.8_raw.csv")
 ```
 
 ```{r Demographics}
-colnames(merged_data)
+
+merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
 
 table(merged_data[merged_data$Attrition == 1,]$ethnicity_0.m)
 table(merged_data[merged_data$Attrition == 1,]$birth_sex_0.m)
+table(merged_data[merged_data$Attrition == 1,]$gender_identity_0.m)
 table(merged_data[merged_data$Attrition == 1,]$employment_0.m)
 table(merged_data[merged_data$Attrition == 1,]$highest_level_of_ed_0.m)
-table(merged_data[merged_data$Attrition == 1,]$ethnicity_0.m)
 summary(merged_data[merged_data$Attrition == 1,]$age_0.m)
 sd(merged_data[merged_data$Attrition == 1,]$age_0.m)
+
+table(merged_data[merged_data$Attrition == 1,]$ethnicity_0.m, 
+      merged_data[merged_data$Attrition == 1,]$birth_sex_0.m)
 
 # etc.
 ```
 
 ```{r Scoring measures}
-colnames(merged_data)
+# colnames(merged_data)
 
-merged_data <- merged_data %>% 
-  mutate_at(vars(ends_with(".m"), -starts_with("c19"), -starts_with("C19")), as.numeric)
+merged_data <- merged_data %>% mutate_at(vars(ends_with(".m"), -starts_with("c19"), -starts_with("C19")), as.numeric)
 
 # There are much more efficient ways to write this code. I'm spelling everything out deliberately for ease of verification.
 
 # If you don't have the above data imported, uncomment and run the below:
-merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
+# merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
 # head(merged_data)
 
 #### AIM / IAM / FIM ####
@@ -472,6 +475,9 @@ merged_data <- read.csv("Created_datasets/Cohorts_1_2_3_data_6.10.csv")
 # Check missingness
 
 I_A_F_items <- c(
+  "AIM_1_0.m", "AIM_2_0.m", "AIM_3_0.m", "AIM_4_0.m",
+  "IAM_1_0.m", "IAM_2_0.m", "IAM_3_0.m", "IAM_4_0.m",
+  "FIM_1_0.m", "FIM_2_0.m", "FIM_3_0.m", "FIM_4_0.m",
   "AIM_1_1.m", "AIM_2_1.m", "AIM_3_1.m", "AIM_4_1.m",
   "IAM_1_1.m", "IAM_2_1.m", "IAM_3_1.m", "IAM_4_1.m",
   "FIM_1_1.m", "FIM_2_1.m", "FIM_3_1.m", "FIM_4_1.m",
@@ -485,6 +491,14 @@ I_A_F_items <- c(
 (sapply(I_A_F_items, function(col) sum(is.na(merged_data[[col]]))))
 
 # Average the AIM, IAM, and FIM items for total scores
+
+merged_data$AIM_mod_1_AVERAGE_0 <- rowMeans(merged_data[, c("AIM_1_0.m", "AIM_2_0.m", "AIM_3_0.m", "AIM_4_0.m")], 
+                                            na.rm = FALSE)
+merged_data$IAM_mod_1_AVERAGE_0 <- rowMeans(merged_data[, c("IAM_1_0.m", "IAM_2_0.m", "IAM_3_0.m", "IAM_4_0.m")], 
+                                            na.rm = FALSE)
+merged_data$FIM_mod_1_AVERAGE_0 <- rowMeans(merged_data[, c("FIM_1_0.m", "FIM_2_0.m", "FIM_3_0.m", "FIM_4_0.m")], 
+                                            na.rm = FALSE)
+
 merged_data$AIM_mod_1_AVERAGE_1 <- rowMeans(merged_data[, c("AIM_1_1.m", "AIM_2_1.m", "AIM_3_1.m", "AIM_4_1.m")], 
                                             na.rm = FALSE)
 merged_data$IAM_mod_1_AVERAGE_1 <- rowMeans(merged_data[, c("IAM_1_1.m", "IAM_2_1.m", "IAM_3_1.m", "IAM_4_1.m")], 
@@ -586,13 +600,15 @@ merged_data_imputed[, grep("^QOL_Q\\d+_2\\.m$",
                                                                 1,
                                                           function(x) ifelse(is.na(x), 
                                                                              mean(x, na.rm = TRUE), x)))
-summary(merged_data_imputed$QOL_Q11_2.m)
+summary(merged_data_imputed$QOL_Q11_0.m)
 summary(merged_data$QOL_Q11_2.m)
 
 # Identify imputed columns
-merged_data_imputed <- merged_data_imputed %>%
-  rename(QOL_Q11_0_imputed.m = QOL_Q11_0.m, 
-         QOL_Q4_0_imputed.m = QOL_Q4_0.m)
+merged_data_imputed <- merged_data_imputed %>% rename(
+  QOL_Q11_0_imputed.m = QOL_Q11_0.m, 
+  QOL_Q4_0_imputed.m = QOL_Q4_0.m)
+
+colnames(merged_data_imputed)
 
 # merge with original
 merged_data <- merge(
@@ -1160,7 +1176,7 @@ merged_data <- merged_data %>%
                                                     "c19yrs_social_now_2.m")), 
                                 na.rm = FALSE))
 
-write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_6.9.csv", row.names = TRUE)
+write.csv(merged_data, "Created_datasets/Cohorts_1_2_3_data_3.10.25.csv", row.names = TRUE)
 ```
 
 ```{r Descriptives, eval = FALSE}
@@ -1277,6 +1293,7 @@ mid_post <- jmv::ttestPS(
   ciES = TRUE,
   desc = TRUE
 )
+
 ```
 
 ```{r Individual improvement, eval = FALSE}
