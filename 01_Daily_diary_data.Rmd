@@ -9,32 +9,29 @@ output: html_notebook
 ```
 
 ```{r Packages}
-# clear work space
-rm(list=ls())
-
 # Update the packages needed
-if (!require("cowplot")) {install.packages("cowplot"); require("cowplot")}                # drawing on plot
-if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}          # descriptives
-if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      # data wrangling
-if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      # interplots
-if (!require("htmlwidgets")) {install.packages("htmlwidgets"); require("htmlwidgets")}    # plotting
-if (!require("kableExtra")) {install.packages("kableExtra"); require("kableExtra")}       # tables
-if (!require("lme4")) {install.packages("lme4"); require("lme4")}                         # ICC
-if (!require("moments")) {install.packages("moments"); require("moments")}                # descriptives for data
-if (!require("naniar")) {install.packages("naniar"); require("naniar")}                   # descriptives for data
-if (!require("plotly")) {install.packages("plotly"); require("plotly")}                   # plot data
-if (!require("psych")) {install.packages("psych"); require("psych")}                      # descriptives for data
-if (!require("pwr")) {install.packages("pwr"); require("pwr")}                            # correlation pwr
-if (!require("readxl")) {install.packages("readxl"); require("readxl")}                   # import data
-if (!require("rmcorr")) {install.packages("rmcorr"); require("rmcorr")}                   # Repeated measure corr.
-if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}                   # ICC table
-if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}                      # data wrangling
-if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}          # manipulation, plot, etc.
+if (!require("cowplot")) {install.packages("cowplot"); require("cowplot")}               
+if (!require("DescTools")) {install.packages("DescTools"); require("DescTools")}          
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")}                      
+if (!require("htmlwidgets")) {install.packages("htmlwidgets"); require("htmlwidgets")}    
+if (!require("kableExtra")) {install.packages("kableExtra"); require("kableExtra")}       
+if (!require("lme4")) {install.packages("lme4"); require("lme4")}                        
+if (!require("moments")) {install.packages("moments"); require("moments")}               
+if (!require("naniar")) {install.packages("naniar"); require("naniar")}                   
+if (!require("plotly")) {install.packages("plotly"); require("plotly")}                  
+if (!require("psych")) {install.packages("psych"); require("psych")}                      
+if (!require("pwr")) {install.packages("pwr"); require("pwr")}                           
+if (!require("readxl")) {install.packages("readxl"); require("readxl")}                   
+if (!require("rmcorr")) {install.packages("rmcorr"); require("rmcorr")}                   
+if (!require("sjPlot")) {install.packages("sjPlot"); require("sjPlot")}                   
+if (!require("tidyr")) {install.packages("tidyr"); require("tidyr")}                      
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}          
 ```
 
 ```{r Data}
 # Import data 
-EMA_dat <- read.csv("C:/Users/sofel/OneDrive/Documents/Labs/Bronx VA foundation/EMA_long_covid/Long_COVID_EMA_Data_Final_Burst_De-Identified.csv") 
+EMA_dat <- read.csv("Raw_data/Long_COVID_EMA_Data_Final_Burst_De-Identified.csv") 
 
 # Look at the data
 head(EMA_dat)
@@ -43,7 +40,7 @@ EMA_dat_1 <- EMA_dat[-c(1:2), ] # remove first two rows
 
 # Rename the ID and start date columns to be consistent with the other datasets
 EMA_dat_1 <- EMA_dat_1 %>%
-  rename(PID = RecipientLastName,
+  dplyr::rename(PID = RecipientLastName,
          StartDate = RecordedDate)
 
 # Rearrange the dataset by participant and time 
@@ -54,9 +51,6 @@ View(EMA_dat_1_sorted)
 
 # the first three rows don't not have an ID (*preview*), so exclude those
 EMA_dat_1_sorted <- EMA_dat_1_sorted[-c(1:3), ]
-
-# Save the chronological data
-write.csv(EMA_dat_1_sorted, "Burst_three_EMA_data_sorted.csv")
 ```
 
 ```{r Adherence and missingness}
@@ -68,8 +62,8 @@ EMA_dat_1_sorted[, 8:37] <- lapply(EMA_dat_1_sorted[, 8:37], as.numeric)
 
 # Look at participant adherence
 (days_per_participant <- EMA_dat_1_sorted %>%
-  group_by(PID) %>%
-  summarise(days_count = n_distinct(StartDate))) # 4 participants have 20/21 days, 1 has 5.
+  dplyr::group_by(PID) %>%
+  dplyr::summarise(days_count = n_distinct(StartDate))) # 4 participants have 20/21 days, 1 has 5.
 
 # Look at missingness
 # Change blank cells to NA
@@ -78,37 +72,76 @@ EMA_dat_1_sorted_processed <- EMA_dat_1_sorted %>%
 
 # Summarize missing values (proportions) for each variable per participant from filled out diaries
 (missing_summary_1 <- EMA_dat_1_sorted_processed %>%
-  group_by(PID) %>%
-  summarise(across(.cols = 8:38, ~mean(is.na(.)), .names = "prop_{.col}")))
+  dplyr::group_by(PID) %>%
+  dplyr::summarise(across(.cols = 8:38, ~mean(is.na(.)), .names = "prop_{.col}")))
 
 # Summarize missing values for each variable per participant out of 21 days 
 (missing_summary_2 <- EMA_dat_1_sorted_processed %>%
-  group_by(PID) %>%
-  summarise(across(.cols = 8:38, ~sum(is.na(.)) / 21, .names = "prop_{.col}")))
+  dplyr::group_by(PID) %>%
+  dplyr::summarise(across(.cols = 8:38, ~sum(is.na(.)) / 21, .names = "prop_{.col}")))
+
+write.csv(EMA_dat_1_sorted_processed, "01_Output/Burst_three_EMA_data_sorted.csv")
+```
+
+```{r Baseline}
+# Add trial baseline and demographic data
+EMA_baseline_dat <- read.csv("Raw_data/Cohort_3_Baseline_Data_Nonnumeric.csv")
+head(EMA_baseline_dat)
+
+EMA_baseline_dat <- EMA_baseline_dat[-1, ]
+
+# Rename and reformat ID column to match daily diary data
+EMA_baseline_dat <- EMA_baseline_dat %>%
+  dplyr::rename(PID = ID)
+
+EMA_baseline_dat$PID <- gsub("^P", "", EMA_baseline_dat$PID)
+
+# Rename all columns to show they're from baseline assessment
+EMA_baseline_dat <- EMA_baseline_dat %>%
+  rename_with(~ paste0("Baseli_", .), .cols = -PID)
+
+# Merge
+merged_data <- EMA_dat_1_sorted_processed %>%
+  left_join(EMA_baseline_dat, by = "PID")
+
+# Remove baseline data from *every* daily diary row per participant (i.e., only the first row per participant should also have basline)
+merged_data <- merged_data %>%
+  dplyr::group_by(PID) %>%
+  dplyr::mutate(across(starts_with("Baseli_"), 
+                       ~ if_else(row_number() == 1, ., NA_character_), 
+                       .names = "{.col}")) %>%
+  ungroup()
+
+View(merged_data)
+
+write.csv(merged_data, "01_Output/Burst_three_EMA_data_sorted_with_baselines.csv")
+
+# brief demos
+merged_data$Baseli_age <- as.numeric(merged_data$Baseli_age)
+summary(merged_data$Baseli_age, na.rm = TRUE)
+table(merged_data$Baseli_birth_sex)
+table(merged_data$Baseli_ethnicity)
 ```
 
 ```{r Variability}
-# Looking at between / within person variance for some example items with intraclass correlation coefficients (1)
-# lower ICC values = more within-person (state) variance; higher ICC values = more between-person (trait) variance
-# another similar metric - root mean square of successive differences (RMSSD) - measures variability from one observation to the next - is in the next chunk (in 'idescriptives').
-
+# Looking at between / within person variance for some example items with intraclass correlation coefficients
 uncon_coping_1 <- lmer(coping_1 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_coping_1, p.val = "kr") # ICC = .40
+tab_model(uncon_coping_1, p.val = "kr") 
 
 uncon_coping_2 <- lmer(coping_2 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_coping_2, p.val = "kr") # ICC = .60
+tab_model(uncon_coping_2, p.val = "kr") 
 
 uncon_coping_3 <- lmer(coping_3 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_coping_3, p.val = "kr") # ICC = .30
+tab_model(uncon_coping_3, p.val = "kr") 
 
 uncon_coping_4 <- lmer(coping_4 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_coping_4,  p.val = "kr") # ICC = .61
+tab_model(uncon_coping_4,  p.val = "kr") 
 
 uncon_coping_5 <- lmer(coping_5 ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_coping_5) # ICC = .19
+tab_model(uncon_coping_5)
 
 uncon_qol <- lmer(qol ~ 1 + (1 | PID), data = EMA_dat_1_sorted)
-tab_model(uncon_qol) # ICC = .11
+tab_model(uncon_qol) \
 ```
 
 ```{r Long form data}
@@ -128,19 +161,17 @@ long_df <- long_df %>% mutate(PID = as.numeric(sub("^P", "", PID)))
 # Change answer_id to numeric 
 long_df <- long_df %>% mutate(answer_id = as.numeric(answer_id))
 
-# save the data in long format
-write.csv(long_df, "Burst_three_EMA_data_long_form.csv")
+# save the long data
+write.csv(long_df, "01_Output/Burst_three_EMA_data_long_form.csv")
 
-# Summarize the reshaped data
-
-# variables to include in the next part of the code:
+# variables to include 
 ema_mh_vars <- c("pre_energy", "energy", "post_energy", "qol", "hopelessness", "health", "restedness", "health",
                  "falling_asleep", "staying_asleep", "waking_early", "isolation", "busy", "anxiety", 
                  "depression", "lc_sx_1", "lc_sx_2", "lc_sx_3", "lc_sx_4", "lc_sx_5", "lc_sx_6", "lc_sx_7",
                  "lc_sx_8", "coping_1", "coping_2", "coping_3", "coping_4", "coping_5","functioning")
 
-# names(long_df)  # make sure that the data is in correct format
-# str(long_df)    # make sure that the data is in correct format
+# names(long_df)  
+# str(long_df)  
 
 # calculate individual mean, sd, skew, etc. 
 (df_desc <- long_df %>%
@@ -184,12 +215,11 @@ t1 <- df_desc %>%
 knitr::kable(t1, format = "markdown", align = "c")
 
 # Save individuals' descriptives
-write.csv(df_desc, "Burst_three_Individual_item_descriptives.csv" )
+write.csv(df_desc, "01_Output/Burst_three_Individual_item_descriptives.csv" )
 ```
 
 ```{r Participant average and SD visualization}
 # Plot the mean for each individuals' variable endorsement (e.g., participant 15's average hopefulness score).
-
 # Pre-definition so that this will plot consistently across different participants 
 table(EMA_dat_1$PID)
 
@@ -248,9 +278,7 @@ htmlwidgets::saveWidget(ggplotly(plot_all_ind_means_inter),
 ```{r Daily series per participant and variable}
 # This chunk is plotting each participant (IDs 15, 16, 19, and 21) daily diary and arranging them 2x2 for each variable. (e.g., a PDF with daily "hopelessness" for each participant.) 
 
-# Folder to save figures 
-# dir.create("Daily_diary_figures")
-output_dir <- "Daily_diary_figures"
+output_dir <- "01_Output"
 
 numeric_cols_1 <- c("qol", "hopefulness", "health", "restedness", 
                     "falling_asleep", "staying_asleep", "waking_early", 
@@ -314,7 +342,7 @@ for (variable_of_interest in numeric_cols_2) {
 power.rmcorr <- function(k, N, effectsizer, sig) {
     pwr.r.test(n = ((N)*(k-1))+1, r = effectsizer, sig.level = sig) } 
 
-power.rmcorr(19, # effective n of 77
+power.rmcorr(19,   # effective n of 77
              4,    # excluding P20
              .33,  # random
              .05)  # sig.
@@ -333,9 +361,8 @@ rmcorr <- rmcorr_mat(PID,
 
 rmcorr_summary <- rmcorr$summary
 
-write.csv(rmcorr_summary, "Daily_correlations_2.csv")
+write.csv(rmcorr_summary, "01_Output/Daily_correlations_2.csv")
 
-# p.vals <- rmcorr$summary$p.vals
-# (p.vals.bonferroni <- p.adjust(p.vals, method = "bonferroni", n = length(p.vals)))
+p.vals <- rmcorr$summary$p.vals
+(p.vals.bonferroni <- p.adjust(p.vals, method = "bonferroni", n = length(p.vals)))
 ```
-
